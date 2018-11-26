@@ -1,0 +1,4 @@
+publish_period: 20 #ms
+
+ecu_ip: "192.168.1.222"
+ecu_port: "8080"
