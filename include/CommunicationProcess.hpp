@@ -8,13 +8,12 @@
 #include <glog/logging.h>
 #include <dynamic_reconfigure/server.h>
 #include "ecu_communication/ecu_communicationParameters.h"
-
+#include "three_one_msgs/control.h"
+#include "three_one_msgs/report.h"
 #include "UDPClient.hpp"
 #include "UDPServer.hpp"
 #include "DataUpload.hpp"
 #include "DataDownload.hpp"
-#include "three_one_msgs/control.h"
-#include "three_one_msgs/report.h"
 
 namespace ecu_communication {
 
@@ -47,6 +46,8 @@ struct yaml_params_type {
     uint16_t ecu_port;
     uint16_t udp_server_port;
     bool send_default_when_no_msg;
+    double_t well_work_display_period;
+    double_t essential_msg_max_period;
 };
 
 
@@ -54,63 +55,55 @@ class CommunicationProcess {
 public:
     CommunicationProcess(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle);
     ~CommunicationProcess();
-//    bool fatal_error = false;
 
 private:
-    double_t check_period_;
-    double_t publish_period_;
-    void variablesInit();
-    void logVerboseInfo();
-    void paramsInit();
-    yaml_params_type yaml_params_;
-    ros_msg_update_type ros_msg_update_;
-    void setROSmsgUpdateFalse();
-    ecu_communicationParameters params_;
-    dynamic_reconfigure::Server<ecu_communicationConfig> reconfigSrv_;
-
-    bool udp_receive_switch_;
-    bool udp_send_switch_;
-    bool ros_publish_switch_;
-    bool send_default_when_no_msg_;
-    communication_process_error_type error_;
-    void error_handle(communication_process_error_type p_error);
-
-
-    void udpReceive();
-
+    //// ROS Variables
     ros::NodeHandle nh_;
     ros::NodeHandle private_nh_;
     ros::Timer data_process_timer_;
     ros::Timer time_check_timer_;
-    void time_check();
+    ros::Publisher recv_data_publisher_;
 
-    void dataProcess();
-    void dataUploadCopy();
-    void dataDownloadCopy(uint8_t pack_num);
+    //// ROS msgs
+    three_one_msgs::report report_;
 
+    //// rosparam handler
+    ecu_communicationParameters params_;
+    dynamic_reconfigure::Server<ecu_communicationConfig> reconfigSrv_;
+    yaml_params_type yaml_params_;
 
+    //// markers
+    ros_msg_update_type ros_msg_update_;
+    bool udp_receive_switch_;
+    bool udp_send_switch_;
+    bool ros_publish_switch_;
+    bool send_default_when_no_msg_;
+
+    //// UDP communication
     UDPServer udp_server_;
     UDPClient udp_client_;
     uint16_t udp_server_port_;
     std::string ecu_ip_;
     uint16_t ecu_port_;
-
-
-    void udpSend();
-
     std::thread udp_receive_thread;
     std::thread udp_send_thread;
 
-
+    //// UDP communication data and variables
     DataUpload data_upload_;
     DataUpload data_upload_copied_;
     DataDownload data_download_;
     DataDownload data_download_copied_;
+    std::mutex data_upload_mutex_;
     std::mutex data_download_pack_one_mutex_;
     std::mutex data_download_pack_two_mutex_;
 
-    std::mutex data_upload_mutex_;
+    //// periods
+    double_t check_period_;
+    double_t publish_period_;
+    double_t essential_msg_max_period_;
+    double_t well_work_display_period_;
 
+    //// for time check
     double_t last_udp_receive_time_[2] = {0.0, 0.0};
     double_t last_udp_receive_interval_ = 0;
     double_t last_udp_receive_till_now_ = 0;
@@ -132,23 +125,26 @@ private:
     double_t last_udp_send_correct_two_interval_ = 0;
     double_t last_udp_send_correct_two_till_now_ = 0;
 
+    double_t last_udp_send_interval_ = 0;
+
     double_t last_publish_time_[2] = {0.0, 0.0};
     double_t last_publish_interval_ = 0;
     double_t last_publish_till_now_ = 0;
 
     double_t tmp_ros_time_now_ = 0;
-    double_t last_udp_send_interval_ = 0;
 
-    three_one_msgs::report report_;
-    bool msg_distribution();
-    ros::Publisher recv_data_publisher_;
+    void paramsInit();
+    void udpReceive();
+    void udpSend();
+    void dataProcess();
+    void dataUploadCopy();
+    bool msgDistribution();
+    void dataDownloadCopy(uint8_t pack_num);
+    void timeCheck();
+    void errorLog(communication_process_error_type p_error);
+    void setROSmsgUpdateFalse();
 
-
-    union {
-        uint8_t data[2];
-        uint16_t result;
-    } tmp_union_16_data;
-
+    void logVerboseInfo(); //// todo
 };
 
 }

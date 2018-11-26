@@ -26,51 +26,59 @@ char * funtst() {
 }
 
 int main(int argc, char** argv) {
+    ecu_communication::DataDownload dataDownload;
+    dataDownload.data_download_pack_one.result_data[13] = 0b10100110;
+    std::cout<<(int)dataDownload.data_download_pack_one.turn_light<<std::endl;
+    std::cout<<(int)dataDownload.data_download_pack_one.wide_taillight<<std::endl;
+    std::cout<<(int)dataDownload.data_download_pack_one.forward_big_light<<std::endl;
+    std::cout<<(int)dataDownload.data_download_pack_one.ring_control<<std::endl;
+    std::cout<<(int)dataDownload.data_download_pack_one.parking_control<<std::endl;
+
 //    ros::init(argc, argv, "ecu_communication");
 //    ecu_communication::CommunicationProcess communicationProcess(ros::NodeHandle(), ros::NodeHandle("~"));
 //    ros::spin();
-    shawn::bit_16_type bit_16;
-    bit_16.data[0] = 1;
-    bit_16.data[1] = 0;
-    shawn::example1.cell.data1 = 0;
-    shawn::example1.cell.data2 = 1;
-    shawn::example2.result = 0b10000100;
-    shawn::example3.cell.data = 0b1111111100000000;
-    std::cout<<(int)shawn::example3.result[0]<<std::endl;
-    std::cout<<(int)shawn::example3.result[1]<<std::endl;
-
-    std::cout<<shawn::example1.result<<std::endl;
-    std::cout<<(int)shawn::example2.cell.data1<<std::endl;
-    std::cout<<(int)shawn::example2.cell.data2<<std::endl;
-
-    shawn::example4.result[0] = 0;
-    shawn::example4.result[1] = 1;
-    shawn::example4.result[2] = 2;
-    shawn::example4.result[3] = 3;
-    shawn::example4.result[4] = 4;
-    std::cout<<(int)shawn::example4.cell.data1[0]<<std::endl;
-    std::cout<<(int)shawn::example4.cell.data1[1]<<std::endl;
-    std::cout<<(int)shawn::example4.cell.data2[0]<<std::endl;
-    std::cout<<(int)shawn::example4.cell.data2[1]<<std::endl;
-    std::cout<<(int)shawn::example4.cell.data2[2]<<std::endl;
-
-
-    union data_upload_pack_one_type {
-        struct {
-            uint32_t data_ID;
-            uint8_t valid_data_mark;
-            uint8_t valid_data_length;
-            uint16_t left_wheel_expect_speed;
-            uint16_t mechanical_brake;
-            uint16_t right_wheel_expect_speed;
-            uint8_t vehicle_speed;
-            uint8_t gear;
-        } cell;
-        uint8_t pack[14];
-    }hah;
-    hah.cell.left_wheel_expect_speed = 0xff00;
-    std::cout<<(int)hah.pack[6]<<std::endl;
-    std::cout<<(int)hah.pack[7]<<std::endl;
+//    shawn::bit_16_type bit_16;
+//    bit_16.data[0] = 1;
+//    bit_16.data[1] = 0;
+//    shawn::example1.cell.data1 = 0;
+//    shawn::example1.cell.data2 = 1;
+//    shawn::example2.result = 0b10000100;
+//    shawn::example3.cell.data = 0b1111111100000000;
+//    std::cout<<(int)shawn::example3.result[0]<<std::endl;
+//    std::cout<<(int)shawn::example3.result[1]<<std::endl;
+//
+//    std::cout<<shawn::example1.result<<std::endl;
+//    std::cout<<(int)shawn::example2.cell.data1<<std::endl;
+//    std::cout<<(int)shawn::example2.cell.data2<<std::endl;
+//
+//    shawn::example4.result[0] = 0;
+//    shawn::example4.result[1] = 1;
+//    shawn::example4.result[2] = 2;
+//    shawn::example4.result[3] = 3;
+//    shawn::example4.result[4] = 4;
+//    std::cout<<(int)shawn::example4.cell.data1[0]<<std::endl;
+//    std::cout<<(int)shawn::example4.cell.data1[1]<<std::endl;
+//    std::cout<<(int)shawn::example4.cell.data2[0]<<std::endl;
+//    std::cout<<(int)shawn::example4.cell.data2[1]<<std::endl;
+//    std::cout<<(int)shawn::example4.cell.data2[2]<<std::endl;
+//
+//
+//    union data_upload_pack_one_type {
+//        struct {
+//            uint32_t data_ID;
+//            uint8_t valid_data_mark;
+//            uint8_t valid_data_length;
+//            uint16_t left_wheel_expect_speed;
+//            uint16_t mechanical_brake;
+//            uint16_t right_wheel_expect_speed;
+//            uint8_t vehicle_speed;
+//            uint8_t gear;
+//        } cell;
+//        uint8_t pack[14];
+//    }hah;
+//    hah.cell.left_wheel_expect_speed = 0xff00;
+//    std::cout<<(int)hah.pack[6]<<std::endl;
+//    std::cout<<(int)hah.pack[7]<<std::endl;
 
 //    const char * tst = "haha";
 //    google::InitGoogleLogging("hmp");

@@ -31,4 +31,15 @@ bool DataUpload::dataDistribution() {
     return true;
 }
 
+DataUpload::DataUpload() {
+    memset(this->data_upload_pack_one.pack, 0, sizeof(this->data_upload_pack_one.pack));
+    memset(this->data_upload_pack_two.pack, 0, sizeof(this->data_upload_pack_two.pack));
+    memset(this->data_upload_pack_three.pack, 0, sizeof(this->data_upload_pack_three.pack));
+    memset(this->data_upload_pack_four.pack, 0, sizeof(this->data_upload_pack_four.pack));
+
+    memset(this->recv_raw_data, 0, sizeof(this->recv_raw_data));
+
+    this->ID_calculate.result = 0;
+}
+
 }

@@ -7,15 +7,14 @@
 #define FIXED std::setiosflags(std::ios::fixed)<<
 
 namespace ecu_communication {
-//// done todo data download init or emergency value when need
-//// done todo time check
-//// todo data upload and download check
+//// full done todo data download init or emergency value when need
+//// full done todo time check
+//// todo data download check
 //// todo add a mark in msg to check if valid msg
-//// todo data upload init
+//// full done todo data upload init
 //// todo some callback apply to current framework
-//// todo start with self driving of not
+//// full done todo start with self driving of not
 //// todo fake issue
-//// done todo bit opration push bit
 //// todo log marks
 CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle)
     : reconfigSrv_{private_node_handle},
@@ -55,7 +54,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     //// start time check after a little while
     ros::Duration(this->check_period_).sleep();
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(this->check_period_),
-                                                    boost::bind(&CommunicationProcess::time_check, this));
+                                                    boost::bind(&CommunicationProcess::timeCheck, this));
 }
 
 
@@ -72,11 +71,11 @@ void CommunicationProcess::udpReceive() {
                 this->last_udp_receive_correct_time_[0] = this->last_udp_receive_correct_time_[1];
                 this->last_udp_receive_correct_time_[1] = ros::Time::now().toSec() * 1000;
             } else {
-                error_handle(communication_process_error_type::udp_recv_ID_error);
+                errorLog(communication_process_error_type::udp_recv_ID_error);
             }
             this->data_upload_mutex_.unlock();
         } else {
-            error_handle(communication_process_error_type::udp_recv_len_error);
+            errorLog(communication_process_error_type::udp_recv_len_error);
         }
     }
 }
@@ -86,8 +85,11 @@ void CommunicationProcess::udpSend() {
         ROS_ERROR_STREAM("UDP SEND INIT FAILURE, KEEP TRYING!");
     }
     ros::Rate loop_rate(20);
-    while (this->udp_send_switch_) {
+    while (this->udp_send_switch_ || this->send_default_when_no_msg_) {
         dataDownloadCopy(1);
+        if (this->send_default_when_no_msg_) {
+            this->data_download_copied_.init();
+        }
         this->last_udp_send_one_time_[0] = this->last_udp_send_one_time_[1];
         this->last_udp_send_one_time_[1] = ros::Time::now().toSec() * 1000;
         if (this->udp_client_.process(this->data_download_copied_.data_download_pack_one.result_data,
@@ -95,12 +97,15 @@ void CommunicationProcess::udpSend() {
             this->last_udp_send_correct_one_time_[0] = this->last_udp_send_correct_one_time_[1];
             this->last_udp_send_correct_one_time_[1] = ros::Time::now().toSec() * 1000;
         } else {
-            error_handle(communication_process_error_type::udp_send_pack_one_len_error);
+            errorLog(communication_process_error_type::udp_send_pack_one_len_error);
         }
 
         ros::Duration(0.025).sleep();
 
         dataDownloadCopy(2);
+        if (this->send_default_when_no_msg_) {
+            this->data_download_copied_.init();
+        }
         this->last_udp_send_two_time_[0] = this->last_udp_send_two_time_[1];
         this->last_udp_send_two_time_[1] = ros::Time::now().toSec() * 1000;
         if (this->udp_client_.process(this->data_download_copied_.data_download_pack_two.result_data,
@@ -108,7 +113,7 @@ void CommunicationProcess::udpSend() {
             this->last_udp_send_correct_two_time_[0] = this->last_udp_send_correct_two_time_[1];
             this->last_udp_send_correct_two_time_[1] = ros::Time::now().toSec() * 1000;
         } else {
-            error_handle(communication_process_error_type::udp_send_pack_two_len_error);
+            errorLog(communication_process_error_type::udp_send_pack_two_len_error);
         }
 
         loop_rate.sleep();
@@ -116,6 +121,7 @@ void CommunicationProcess::udpSend() {
 }
 
 CommunicationProcess::~CommunicationProcess() {
+    //// todo
     LOG_INFO << "program end";
     LOG_WARN << "program end";
     LOG_ERROR << "program end";
@@ -130,8 +136,9 @@ CommunicationProcess::~CommunicationProcess() {
 
 void CommunicationProcess::dataProcess() {
     dataUploadCopy();
-    if (!msg_distribution()) {
-        error_handle(communication_process_error_type::udp_receive_data_illegal);
+    if (!msgDistribution()) {
+        errorLog(communication_process_error_type::udp_receive_data_illegal);
+        return;
     }
     if (this->ros_publish_switch_) {
         this->recv_data_publisher_.publish(this->report_);
@@ -169,150 +176,137 @@ void CommunicationProcess::dataDownloadCopy(uint8_t pack_num) {
     }
 }
 
-bool CommunicationProcess::msg_distribution() {
-    //// todo data check if right
+bool CommunicationProcess::msgDistribution() {
+    if (this->data_upload_copied_.data_upload_pack_one.left_wheel_expect_speed > 25000) {
+        return false;
+    }
+    this->report_.give_back.left_wheel_expect_speed = this->data_upload_copied_.data_upload_pack_one.left_wheel_expect_speed * 0.001;
+    if (this->data_upload_copied_.data_upload_pack_one.right_wheel_expect_speed > 25000) {
+        return false;
+    }
+    this->report_.give_back.right_wheel_expect_speed = this->data_upload_copied_.data_upload_pack_one.right_wheel_expect_speed * 0.001;
+    if (this->data_upload_copied_.data_upload_pack_one.mechanical_brake > 1000) {
+        return false;
+    }
+    this->report_.vehicle_state.mechanical_brake = this->data_upload_copied_.data_upload_pack_one.mechanical_brake * 0.1;
+    if (this->data_upload_copied_.data_upload_pack_one.vehicle_speed > 250) {
+        return false;
+    }
+    this->report_.vehicle_state.vehicle_speed = this->data_upload_copied_.data_upload_pack_one.vehicle_speed * 0.1;
+    if ((this->data_upload_copied_.data_upload_pack_one.gear < 1) || (this->data_upload_copied_.data_upload_pack_one.gear > 3)) {
+        return false;
+    }
+    this->report_.vehicle_state.current_gear = this->data_upload_copied_.data_upload_pack_one.gear;
 
-    this->tmp_union_16_data.data[0] = this->data_upload_copied_.data_upload_pack_one.cell.left_wheel_expect_speed_low_byte;
-    this->tmp_union_16_data.data[1] = this->data_upload_copied_.data_upload_pack_one.cell.left_wheel_expect_speed_high_byte;
-    if (this->tmp_union_16_data.result > 25000) {
+    if (this->data_upload_copied_.data_upload_pack_two.left_motor_actual_speed > 10000) {
         return false;
     }
-    this->report_.give_back.left_wheel_expect_speed = this->tmp_union_16_data.result * 0.001;
-    this->tmp_union_16_data.data[0] = this->data_upload_copied_.data_upload_pack_one.cell.right_wheel_expect_speed_low_byte;
-    this->tmp_union_16_data.data[1] = this->data_upload_copied_.data_upload_pack_one.cell.right_wheel_expect_speed_high_byte;
-    if (this->tmp_union_16_data.result > 25000) {
+    this->report_.vehicle_state.left_motor_rpm = this->data_upload_copied_.data_upload_pack_two.left_motor_actual_speed;
+    if (this->data_upload_copied_.data_upload_pack_two.right_motor_actual_speed > 10000) {
         return false;
     }
-    this->report_.give_back.right_wheel_expect_speed = this->tmp_union_16_data.result * 0.001;
-    this->tmp_union_16_data.data[0] = this->data_upload_copied_.data_upload_pack_one.cell.mechanical_brake_low_byte;
-    this->tmp_union_16_data.data[1] = this->data_upload_copied_.data_upload_pack_one.cell.mechanical_brake_high_byte;
-    if (this->tmp_union_16_data.result > 1000) {
+    this->report_.vehicle_state.right_motor_rpm = this->data_upload_copied_.data_upload_pack_two.right_motor_actual_speed;
+    if (this->data_upload_copied_.data_upload_pack_two.left_motor_gear > 1) {
         return false;
     }
-    this->report_.vehicle_state.mechanical_brake = this->tmp_union_16_data.result * 0.1;
-    this->report_.vehicle_state.vehicle_speed = this->data_upload_copied_.data_upload_pack_one.cell.vehicle_speed * 0.1;
-    if (this->data_upload_copied_.data_upload_pack_one.cell.vehicle_speed > 250) {
+    this->report_.vehicle_state.left_wheel_rotate = this->data_upload_copied_.data_upload_pack_two.left_motor_gear;
+    if (this->data_upload_copied_.data_upload_pack_two.right_motor_gear > 1) {
         return false;
     }
-    this->report_.vehicle_state.current_gear = this->data_upload_copied_.data_upload_pack_one.cell.gear;
-    if ((this->data_upload_copied_.data_upload_pack_one.cell.gear < 1) || (this->data_upload_copied_.data_upload_pack_one.cell.gear > 3)) {
+    this->report_.vehicle_state.right_wheel_rotate = this->data_upload_copied_.data_upload_pack_two.right_motor_gear;
+    if (this->data_upload_copied_.data_upload_pack_two.SOC > 100) {
         return false;
     }
+    this->report_.vehicle_state.SOC = this->data_upload_copied_.data_upload_pack_two.SOC;
+    if (this->data_upload_copied_.data_upload_pack_two.tailgate_state > 2) {
+        return false;
+    }
+    this->report_.vehicle_state.tailgate_state = this->data_upload_copied_.data_upload_pack_two.tailgate_state;
 
-    this->tmp_union_16_data.data[0] = this->data_upload_copied_.data_upload_pack_two.cell.left_motor_actual_speed_low_byte;
-    this->tmp_union_16_data.data[1] = this->data_upload_copied_.data_upload_pack_two.cell.left_motor_actual_speed_high_byte;
-    if (this->tmp_union_16_data.result > 10000) {
+    if (this->data_upload_copied_.data_upload_pack_three.left_one_cylinder_position > 250) {
         return false;
     }
-    this->report_.vehicle_state.left_motor_rpm = this->tmp_union_16_data.result;
-    this->tmp_union_16_data.data[0] = this->data_upload_copied_.data_upload_pack_two.cell.right_motor_actual_speed_low_byte;
-    this->tmp_union_16_data.data[1] = this->data_upload_copied_.data_upload_pack_two.cell.right_motor_actual_speed_high_byte;
-    if (this->tmp_union_16_data.result > 10000) {
-        return false;
-    }
-    this->report_.vehicle_state.right_motor_rpm = this->tmp_union_16_data.result;
-    this->report_.vehicle_state.left_wheel_rotate = this->data_upload_copied_.data_upload_pack_two.cell.left_motor_gear;
-    if (this->data_upload_copied_.data_upload_pack_two.cell.left_motor_gear > 1) {
-        return false;
-    }
-    this->report_.vehicle_state.right_wheel_rotate = this->data_upload_copied_.data_upload_pack_two.cell.right_motor_gear;
-    if (this->data_upload_copied_.data_upload_pack_two.cell.right_motor_gear > 1) {
-        return false;
-    }
-    this->report_.vehicle_state.SOC = this->data_upload_copied_.data_upload_pack_two.cell.SOC;
-    if (this->data_upload_copied_.data_upload_pack_two.cell.SOC > 100) {
-        return false;
-    }
-    this->report_.vehicle_state.tailgate_state = this->data_upload_copied_.data_upload_pack_two.cell.tailgate_state;
-    if (this->data_upload_copied_.data_upload_pack_two.cell.tailgate_state > 2) {
-        return false;
-    }
-
     this->report_.cylinder_position.left_one_cylinder_position =
-            this->data_upload_copied_.data_upload_pack_three.cell.left_one_cylinder_position * 2;
-    if (this->data_upload_copied_.data_upload_pack_three.cell.left_one_cylinder_position > 250) {
+            this->data_upload_copied_.data_upload_pack_three.left_one_cylinder_position * 2;
+    if (this->data_upload_copied_.data_upload_pack_three.left_two_cylinder_position > 250) {
         return false;
     }
     this->report_.cylinder_position.left_two_cylinder_position =
-            this->data_upload_copied_.data_upload_pack_three.cell.left_two_cylinder_position * 2;
-    if (this->data_upload_copied_.data_upload_pack_three.cell.left_two_cylinder_position > 250) {
+            this->data_upload_copied_.data_upload_pack_three.left_two_cylinder_position * 2;
+    if (this->data_upload_copied_.data_upload_pack_three.left_three_cylinder_position > 250) {
         return false;
     }
     this->report_.cylinder_position.left_three_cylinder_position =
-            this->data_upload_copied_.data_upload_pack_three.cell.left_three_cylinder_position * 2;
-    if (this->data_upload_copied_.data_upload_pack_three.cell.left_three_cylinder_position > 250) {
+            this->data_upload_copied_.data_upload_pack_three.left_three_cylinder_position * 2;
+    if (this->data_upload_copied_.data_upload_pack_three.left_four_cylinder_position > 250) {
         return false;
     }
     this->report_.cylinder_position.left_four_cylinder_position =
-            this->data_upload_copied_.data_upload_pack_three.cell.left_four_cylinder_position * 2;
-    if (this->data_upload_copied_.data_upload_pack_three.cell.left_four_cylinder_position > 250) {
+            this->data_upload_copied_.data_upload_pack_three.left_four_cylinder_position * 2;
+    if (this->data_upload_copied_.data_upload_pack_three.right_one_cylinder_position > 250) {
         return false;
     }
     this->report_.cylinder_position.right_one_cylinder_position =
-            this->data_upload_copied_.data_upload_pack_three.cell.right_one_cylinder_position * 2;
-    if (this->data_upload_copied_.data_upload_pack_three.cell.right_one_cylinder_position > 250) {
+            this->data_upload_copied_.data_upload_pack_three.right_one_cylinder_position * 2;
+    if (this->data_upload_copied_.data_upload_pack_three.right_two_cylinder_position > 250) {
         return false;
     }
     this->report_.cylinder_position.right_two_cylinder_position =
-            this->data_upload_copied_.data_upload_pack_three.cell.right_two_cylinder_position * 2;
-    if (this->data_upload_copied_.data_upload_pack_three.cell.right_two_cylinder_position > 250) {
+            this->data_upload_copied_.data_upload_pack_three.right_two_cylinder_position * 2;
+    if (this->data_upload_copied_.data_upload_pack_three.right_three_cylinder_position > 250) {
         return false;
     }
     this->report_.cylinder_position.right_three_cylinder_position =
-            this->data_upload_copied_.data_upload_pack_three.cell.right_three_cylinder_position * 2;
-    if (this->data_upload_copied_.data_upload_pack_three.cell.right_three_cylinder_position > 250) {
+            this->data_upload_copied_.data_upload_pack_three.right_three_cylinder_position * 2;
+    if (this->data_upload_copied_.data_upload_pack_three.right_four_cylinder_position > 250) {
         return false;
     }
     this->report_.cylinder_position.right_four_cylinder_position =
-            this->data_upload_copied_.data_upload_pack_three.cell.right_four_cylinder_position * 2;
-    if (this->data_upload_copied_.data_upload_pack_three.cell.right_four_cylinder_position > 250) {
+            this->data_upload_copied_.data_upload_pack_three.right_four_cylinder_position * 2;
+
+    if (this->data_upload_copied_.data_upload_pack_four.left_one_cylinder_pressure > 250) {
         return false;
     }
-
     this->report_.cylinder_pressure.left_one_cylinder_pressure =
-            this->data_upload_copied_.data_upload_pack_four.cell.left_one_cylinder_pressure;
-    if (this->data_upload_copied_.data_upload_pack_four.cell.left_one_cylinder_pressure > 250) {
+            this->data_upload_copied_.data_upload_pack_four.left_one_cylinder_pressure;
+    if (this->data_upload_copied_.data_upload_pack_four.left_two_cylinder_pressure > 250) {
         return false;
     }
     this->report_.cylinder_pressure.left_two_cylinder_pressure =
-            this->data_upload_copied_.data_upload_pack_four.cell.left_two_cylinder_pressure;
-    if (this->data_upload_copied_.data_upload_pack_four.cell.left_two_cylinder_pressure > 250) {
+            this->data_upload_copied_.data_upload_pack_four.left_two_cylinder_pressure;
+    if (this->data_upload_copied_.data_upload_pack_four.left_three_cylinder_pressure > 250) {
         return false;
     }
     this->report_.cylinder_pressure.left_three_cylinder_pressure =
-            this->data_upload_copied_.data_upload_pack_four.cell.left_three_cylinder_pressure;
-    if (this->data_upload_copied_.data_upload_pack_four.cell.left_three_cylinder_pressure > 250) {
+            this->data_upload_copied_.data_upload_pack_four.left_three_cylinder_pressure;
+    if (this->data_upload_copied_.data_upload_pack_four.left_four_cylinder_pressure > 250) {
         return false;
     }
     this->report_.cylinder_pressure.left_four_cylinder_pressure =
-            this->data_upload_copied_.data_upload_pack_four.cell.left_four_cylinder_pressure;
-    if (this->data_upload_copied_.data_upload_pack_four.cell.left_four_cylinder_pressure > 250) {
+            this->data_upload_copied_.data_upload_pack_four.left_four_cylinder_pressure;
+    if (this->data_upload_copied_.data_upload_pack_four.right_one_cylinder_pressure > 250) {
         return false;
     }
     this->report_.cylinder_pressure.right_one_cylinder_pressure =
-            this->data_upload_copied_.data_upload_pack_four.cell.right_one_cylinder_pressure;
-    if (this->data_upload_copied_.data_upload_pack_four.cell.right_one_cylinder_pressure > 250) {
+            this->data_upload_copied_.data_upload_pack_four.right_one_cylinder_pressure;
+    if (this->data_upload_copied_.data_upload_pack_four.right_two_cylinder_pressure > 250) {
         return false;
     }
     this->report_.cylinder_pressure.right_two_cylinder_pressure =
-            this->data_upload_copied_.data_upload_pack_four.cell.right_two_cylinder_pressure;
-    if (this->data_upload_copied_.data_upload_pack_four.cell.right_two_cylinder_pressure > 250) {
+            this->data_upload_copied_.data_upload_pack_four.right_two_cylinder_pressure;
+    if (this->data_upload_copied_.data_upload_pack_four.right_three_cylinder_pressure > 250) {
         return false;
     }
     this->report_.cylinder_pressure.right_three_cylinder_pressure =
-            this->data_upload_copied_.data_upload_pack_four.cell.right_three_cylinder_pressure;
-    if (this->data_upload_copied_.data_upload_pack_four.cell.right_three_cylinder_pressure > 250) {
+            this->data_upload_copied_.data_upload_pack_four.right_three_cylinder_pressure;
+    if (this->data_upload_copied_.data_upload_pack_four.right_four_cylinder_pressure > 250) {
         return false;
     }
     this->report_.cylinder_pressure.right_four_cylinder_pressure =
-            this->data_upload_copied_.data_upload_pack_four.cell.right_four_cylinder_pressure;
-    if (this->data_upload_copied_.data_upload_pack_four.cell.right_four_cylinder_pressure > 250) {
-        return false;
-    }
+            this->data_upload_copied_.data_upload_pack_four.right_four_cylinder_pressure;
 }
 
-void CommunicationProcess::error_handle(communication_process_error_type p_error) {
-    //// todo add ros time in each log
+void CommunicationProcess::errorLog(communication_process_error_type p_error) {
     switch ((int)p_error) {
         case 1: {
             LOG_ERROR << "UDP received length error: " << this->udp_server_.get_recv_len();
@@ -373,7 +367,7 @@ void CommunicationProcess::error_handle(communication_process_error_type p_error
     }
 }
 
-void CommunicationProcess::time_check() {
+void CommunicationProcess::timeCheck() {
     this->tmp_ros_time_now_ = ros::Time::now().toSec() * 1000;
 
     this->last_udp_receive_interval_ = this->last_udp_receive_time_[1] - this->last_udp_receive_time_[0];
@@ -413,7 +407,7 @@ void CommunicationProcess::time_check() {
          (this->last_udp_send_interval_ > 30))) {
         no_error = false;
         ROS_ERROR_STREAM("ERROR in UDP Send!");
-        error_handle(communication_process_error_type::udp_send_time_error);
+        errorLog(communication_process_error_type::udp_send_time_error);
     }
 
     if ((this->ros_publish_switch_) &&
@@ -422,7 +416,7 @@ void CommunicationProcess::time_check() {
          (this->last_publish_till_now_ > 55))) {
         no_error = false;
         ROS_ERROR_STREAM("ERROR in ROS Publish!");
-        error_handle(communication_process_error_type::ros_publish_time_error);
+        errorLog(communication_process_error_type::ros_publish_time_error);
     }
 
     if ((this->udp_receive_switch_) &&
@@ -432,7 +426,7 @@ void CommunicationProcess::time_check() {
         no_error = false;
         this->ros_publish_switch_ = false;
         ROS_ERROR_STREAM("ERROR in UDP Receive!");
-        error_handle(communication_process_error_type::udp_receive_time_error);
+        errorLog(communication_process_error_type::udp_receive_time_error);
     } else {
         this->ros_publish_switch_ = true;
     }
@@ -441,15 +435,14 @@ void CommunicationProcess::time_check() {
         no_error = false;
         this->udp_send_switch_ = false;
         ROS_ERROR_STREAM("ERROR NO ROS msg Receive!");
-        error_handle(communication_process_error_type::ros_msg_receive_time_over);
+        errorLog(communication_process_error_type::ros_msg_receive_time_over);
     } else {
         this->udp_send_switch_ = true;
     }
     setROSmsgUpdateFalse();
 
     if (no_error) {
-        //// todo well_work_display_period / check_period
-        ROS_INFO_STREAM_THROTTLE(5, "work well");
+        ROS_INFO_STREAM_THROTTLE(std::max((int)(this->well_work_display_period_ / this->check_period_), 1), "work well");
     }
 }
 
@@ -478,13 +471,6 @@ void CommunicationProcess::logVerboseInfo() {
     LOG(INFO) << "last_publish_till_now_: " << this->last_publish_till_now_;
 }
 
-void CommunicationProcess::variablesInit() {
-
-    this->udp_send_switch_ = true;
-
-
-}
-
 void CommunicationProcess::paramsInit() {
     //// todo change default value
     this->yaml_params_.send_default_when_no_msg = this->private_nh_.param("send_default_when_no_msg", false);
@@ -493,7 +479,8 @@ void CommunicationProcess::paramsInit() {
     this->yaml_params_.udp_server_port = (uint16_t)this->private_nh_.param("udp_server_port", 8081);
     this->yaml_params_.publish_period = this->private_nh_.param("publish_period", 20) * 0.001;
     this->yaml_params_.check_period = this->private_nh_.param("check_period", 200) * 0.001;
-    //// todo more than essential msg period
+    this->yaml_params_.essential_msg_max_period = this->private_nh_.param("essential_msg_max_period", 100) * 0.001;
+    this->yaml_params_.well_work_display_period = this->private_nh_.param("well_work_display_period", 1000) * 0.001;
 
     this->send_default_when_no_msg_ = this->yaml_params_.send_default_when_no_msg;
     this->ecu_ip_ = this->yaml_params_.ecu_ip;
@@ -501,6 +488,13 @@ void CommunicationProcess::paramsInit() {
     this->udp_server_port_ = this->yaml_params_.udp_server_port;
     this->publish_period_ = this->yaml_params_.publish_period;
     this->check_period_ = this->yaml_params_.check_period;
+    this->essential_msg_max_period_ = this->yaml_params_.essential_msg_max_period;
+    this->well_work_display_period_ = this->yaml_params_.well_work_display_period;
+
+    //// check_period > essential_msg_max_period
+    if (this->check_period_ < (this->essential_msg_max_period_ + 0.01)) {
+        this->check_period_ = (this->essential_msg_max_period_ + 0.01);
+    }
 
     this->udp_send_switch_ = false;
     this->udp_receive_switch_ = false;
@@ -512,6 +506,7 @@ void CommunicationProcess::paramsInit() {
 }
 
 void CommunicationProcess::setROSmsgUpdateFalse() {
+    //// todo add more msg false
     this->ros_msg_update_.essential.path_plan = 0;
 }
 

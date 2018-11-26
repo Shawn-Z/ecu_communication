@@ -17,7 +17,7 @@ union data_upload_pack_one_type {
         uint16_t right_wheel_expect_speed;
         uint8_t vehicle_speed;
         uint8_t gear;
-    } cell;
+    };
     uint8_t pack[14];
 };
 
@@ -33,7 +33,7 @@ union data_upload_pack_two_type {
         uint16_t right_motor_actual_speed;
         uint8_t SOC;
         uint8_t tailgate_state;
-    } cell;
+    };
     uint8_t pack[14];
 };
 
@@ -51,7 +51,7 @@ union data_upload_pack_three_type {
         uint8_t right_two_cylinder_position;
         uint8_t right_three_cylinder_position;
         uint8_t right_four_cylinder_position;
-    } cell;
+    };
     uint8_t pack[14];
 };
 
@@ -68,7 +68,7 @@ union data_upload_pack_four_type {
         uint8_t right_two_cylinder_pressure;
         uint8_t right_three_cylinder_pressure;
         uint8_t right_four_cylinder_pressure;
-    } cell;
+    };
     uint8_t pack[14];
 };
 
@@ -87,6 +87,7 @@ public:
     uint8_t recv_raw_data[14];
     ID_calculate_type ID_calculate;
 
+    DataUpload();
     bool dataDistribution();
 };
 
