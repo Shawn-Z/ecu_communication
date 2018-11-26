@@ -31,6 +31,10 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
     paramsInit();
 
+    if (this->reconfig_) {
+        this->reconfigSrv_.setCallback(boost::bind(&CommunicationProcess::reconfigureRequest, this, _1, _2));
+    }
+
     //// udp receive
     this->udp_receive_thread = std::thread(&CommunicationProcess::udpReceive, this);
     this->udp_receive_thread.detach();
@@ -85,10 +89,13 @@ void CommunicationProcess::udpSend() {
         ROS_ERROR_STREAM("UDP SEND INIT FAILURE, KEEP TRYING!");
     }
     ros::Rate loop_rate(20);
-    while (this->udp_send_switch_ || this->send_default_when_no_msg_) {
+    while (this->udp_send_switch_ || this->send_default_when_no_msg_ || this->fake_issue_) {
         dataDownloadCopy(1);
-        if (this->send_default_when_no_msg_) {
+        if (!this->udp_send_switch_) {
             this->data_download_copied_.init();
+        }
+        if (this->fake_issue_) {
+            fake_issue();
         }
         this->last_udp_send_one_time_[0] = this->last_udp_send_one_time_[1];
         this->last_udp_send_one_time_[1] = ros::Time::now().toSec() * 1000;
@@ -103,8 +110,11 @@ void CommunicationProcess::udpSend() {
         ros::Duration(0.025).sleep();
 
         dataDownloadCopy(2);
-        if (this->send_default_when_no_msg_) {
+        if (!this->udp_send_switch_) {
             this->data_download_copied_.init();
+        }
+        if (this->fake_issue_) {
+            fake_issue();
         }
         this->last_udp_send_two_time_[0] = this->last_udp_send_two_time_[1];
         this->last_udp_send_two_time_[1] = ros::Time::now().toSec() * 1000;
@@ -309,6 +319,7 @@ bool CommunicationProcess::msgDistribution() {
 void CommunicationProcess::errorLog(communication_process_error_type p_error) {
     switch ((int)p_error) {
         case 1: {
+            //// todo check log uint8
             LOG_ERROR << "UDP received length error: " << this->udp_server_.get_recv_len();
             break;
         }
@@ -473,6 +484,8 @@ void CommunicationProcess::logVerboseInfo() {
 
 void CommunicationProcess::paramsInit() {
     //// todo change default value
+    this->yaml_params_.reconfig = this->private_nh_.param("reconfig", false);
+    this->yaml_params_.fake_issue = this->private_nh_.param("fake_issue", false);
     this->yaml_params_.send_default_when_no_msg = this->private_nh_.param("send_default_when_no_msg", false);
     this->yaml_params_.ecu_ip = this->private_nh_.param<std::string>("ecu_ip", "192.168.1.22");
     this->yaml_params_.ecu_port = (uint16_t)this->private_nh_.param("ecu_port", 8080);
@@ -482,6 +495,8 @@ void CommunicationProcess::paramsInit() {
     this->yaml_params_.essential_msg_max_period = this->private_nh_.param("essential_msg_max_period", 100) * 0.001;
     this->yaml_params_.well_work_display_period = this->private_nh_.param("well_work_display_period", 1000) * 0.001;
 
+    this->reconfig_ = this->yaml_params_.reconfig;
+    this->fake_issue_ = this->yaml_params_.fake_issue;
     this->send_default_when_no_msg_ = this->yaml_params_.send_default_when_no_msg;
     this->ecu_ip_ = this->yaml_params_.ecu_ip;
     this->ecu_port_ = this->yaml_params_.ecu_port;
@@ -508,6 +523,18 @@ void CommunicationProcess::paramsInit() {
 void CommunicationProcess::setROSmsgUpdateFalse() {
     //// todo add more msg false
     this->ros_msg_update_.essential.path_plan = 0;
+}
+
+void CommunicationProcess::reconfigureRequest(ecu_communication::ecu_communicationConfig &config, uint32_t level) {
+    //// todo
+}
+
+void CommunicationProcess::fake_issue() {
+    //// todo
+}
+
+void CommunicationProcess::logMarkers() {
+    LOG_INFO <<
 }
 
 }

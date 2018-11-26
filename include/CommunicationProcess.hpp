@@ -48,6 +48,8 @@ struct yaml_params_type {
     bool send_default_when_no_msg;
     double_t well_work_display_period;
     double_t essential_msg_max_period;
+    bool fake_issue;
+    bool reconfig;
 };
 
 
@@ -78,6 +80,8 @@ private:
     bool udp_send_switch_;
     bool ros_publish_switch_;
     bool send_default_when_no_msg_;
+    bool reconfig_;
+    bool fake_issue_;
 
     //// UDP communication
     UDPServer udp_server_;
@@ -134,14 +138,17 @@ private:
     double_t tmp_ros_time_now_ = 0;
 
     void paramsInit();
+    void reconfigureRequest(ecu_communicationConfig &config, uint32_t level);
     void udpReceive();
     void udpSend();
     void dataProcess();
     void dataUploadCopy();
     bool msgDistribution();
     void dataDownloadCopy(uint8_t pack_num);
+    void fake_issue(); //// todo implement
     void timeCheck();
     void errorLog(communication_process_error_type p_error);
+    void logMarkers();
     void setROSmsgUpdateFalse();
 
     void logVerboseInfo(); //// todo
