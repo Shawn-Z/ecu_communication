@@ -7,15 +7,8 @@
 #define FIXED std::setiosflags(std::ios::fixed)<<
 
 namespace ecu_communication {
-//// full done todo data download init or emergency value when need
-//// full done todo time check
 //// todo data download check
-//// todo add a mark in msg to check if valid msg
-//// full done todo data upload init
 //// todo some callback apply to current framework
-//// full done todo start with self driving of not
-//// todo fake issue
-//// todo log marks
 CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle)
     : reconfigSrv_{private_node_handle},
       params_{private_node_handle} {
@@ -59,6 +52,8 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     ros::Duration(this->check_period_).sleep();
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(this->check_period_),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
+
+    logMarkers();
 }
 
 
@@ -89,12 +84,12 @@ void CommunicationProcess::udpSend() {
         ROS_ERROR_STREAM("UDP SEND INIT FAILURE, KEEP TRYING!");
     }
     ros::Rate loop_rate(20);
-    while (this->udp_send_switch_ || this->send_default_when_no_msg_ || this->fake_issue_) {
+    while (this->udp_send_switch_ || this->send_default_when_no_msg_ || this->params_.fake_issue) {
         dataDownloadCopy(1);
         if (!this->udp_send_switch_) {
             this->data_download_copied_.init();
         }
-        if (this->fake_issue_) {
+        if (this->params_.fake_issue) {
             fake_issue();
         }
         this->last_udp_send_one_time_[0] = this->last_udp_send_one_time_[1];
@@ -113,7 +108,7 @@ void CommunicationProcess::udpSend() {
         if (!this->udp_send_switch_) {
             this->data_download_copied_.init();
         }
-        if (this->fake_issue_) {
+        if (this->params_.fake_issue) {
             fake_issue();
         }
         this->last_udp_send_two_time_[0] = this->last_udp_send_two_time_[1];
@@ -131,17 +126,24 @@ void CommunicationProcess::udpSend() {
 }
 
 CommunicationProcess::~CommunicationProcess() {
-    //// todo
+    //// todo shutdown publisher and subscriber
+    this->recv_data_publisher_.shutdown();
+
+    this->time_check_timer_.stop();
+    this->data_process_timer_.stop();
+
+    this->udp_send_switch_ = false;
+    this->udp_receive_switch_ = false;
+    this->ros_publish_switch_ = false;
+    this->reconfig_ = false;
+    this->params_.fake_issue = false;
+    ros::Duration(0.3).sleep();
+    this->send_default_when_no_msg_ = false;
+
     LOG_INFO << "program end";
     LOG_WARN << "program end";
     LOG_ERROR << "program end";
     google::ShutdownGoogleLogging();
-    //// todo shutdown more switch
-    this->udp_receive_switch_ = false;
-    this->udp_send_switch_ = false;
-    this->ros_publish_switch_ = false;
-    //// todo
-//    ros::Duration(0.1).sleep();
 }
 
 void CommunicationProcess::dataProcess() {
@@ -317,9 +319,10 @@ bool CommunicationProcess::msgDistribution() {
 }
 
 void CommunicationProcess::errorLog(communication_process_error_type p_error) {
+    logMarkers();
+
     switch ((int)p_error) {
         case 1: {
-            //// todo check log uint8
             LOG_ERROR << "UDP received length error: " << this->udp_server_.get_recv_len();
             break;
         }
@@ -355,7 +358,8 @@ void CommunicationProcess::errorLog(communication_process_error_type p_error) {
             break;
         }
         case 7: {
-            //// todo check no error, error try new way
+            //// todo may log details
+            LOG_ERROR << "udp_receive_data_illegal!";
 //            LOG(ERROR) << "udp_receive_data_illegal: " << std::hex << this->data_upload_copied_.data_upload_pack_one.pack;
 //            LOG(ERROR) << "udp_receive_data_illegal: " << std::hex << this->data_upload_copied_.data_upload_pack_two.pack;
 //            LOG(ERROR) << "udp_receive_data_illegal: " << std::hex << this->data_upload_copied_.data_upload_pack_three.pack;
@@ -379,6 +383,14 @@ void CommunicationProcess::errorLog(communication_process_error_type p_error) {
 }
 
 void CommunicationProcess::timeCheck() {
+    //// following rules are not correct always, only serves at same time t.
+    //// last_udp_receive_interval_ <= last_udp_receive_correct_interval_
+    //// last_udp_receive_till_now_ <= last_udp_receive_correct_till_now_
+    //// last_udp_send_one_interval_ <= last_udp_send_correct_one_interval_
+    //// last_udp_send_one_till_now_ <= last_udp_send_correct_one_till_now_
+    //// last_udp_send_two_interval_ <= last_udp_send_correct_two_interval_
+    //// last_udp_send_two_till_now_ <= last_udp_send_correct_two_till_now_
+
     this->tmp_ros_time_now_ = ros::Time::now().toSec() * 1000;
 
     this->last_udp_receive_interval_ = this->last_udp_receive_time_[1] - this->last_udp_receive_time_[0];
@@ -430,7 +442,7 @@ void CommunicationProcess::timeCheck() {
         errorLog(communication_process_error_type::ros_publish_time_error);
     }
 
-    if ((this->udp_receive_switch_) &&
+    if (//(this->udp_receive_switch_) &&
         ((this->last_udp_receive_interval_ < 8) ||
          (this->last_udp_receive_correct_interval_ > 25) ||
          (this->last_udp_receive_correct_till_now_ > 25))) {
@@ -439,7 +451,7 @@ void CommunicationProcess::timeCheck() {
         ROS_ERROR_STREAM("ERROR in UDP Receive!");
         errorLog(communication_process_error_type::udp_receive_time_error);
     } else {
-        this->ros_publish_switch_ = true;
+        this->ros_publish_switch_ = this->udp_receive_switch_;
     }
 
     if (this->ros_msg_update_.essential.result != this->ros_msg_update_.essential_yes) {
@@ -455,60 +467,71 @@ void CommunicationProcess::timeCheck() {
     if (no_error) {
         ROS_INFO_STREAM_THROTTLE(std::max((int)(this->well_work_display_period_ / this->check_period_), 1), "work well");
     }
+
+    if (this->verbose_log_) {
+        logVerboseInfo();
+    }
 }
 
 void CommunicationProcess::logVerboseInfo() {
-    //// following rules are not correct always, only serves at same time t.
-    //// last_udp_receive_interval_ <= last_udp_receive_correct_interval_
-    //// last_udp_receive_till_now_ <= last_udp_receive_correct_till_now_
-    //// last_udp_send_one_interval_ <= last_udp_send_correct_one_interval_
-    //// last_udp_send_one_till_now_ <= last_udp_send_correct_one_till_now_
-    //// last_udp_send_two_interval_ <= last_udp_send_correct_two_interval_
-    //// last_udp_send_two_till_now_ <= last_udp_send_correct_two_till_now_
-    LOG(INFO) << "last_udp_receive_interval_: " << this->last_udp_receive_interval_;
-    LOG(INFO) << "last_udp_receive_till_now_: " << this->last_udp_receive_till_now_;
-    LOG(INFO) << "last_udp_receive_correct_interval_: " << this->last_udp_receive_correct_interval_;
-    LOG(INFO) << "last_udp_receive_correct_till_now_: " << this->last_udp_receive_correct_till_now_;
-    LOG(INFO) << "last_udp_send_one_interval_: " << this->last_udp_send_one_interval_;
-    LOG(INFO) << "last_udp_send_one_till_now_: " << this->last_udp_send_one_till_now_;
-    LOG(INFO) << "last_udp_send_correct_one_interval_: " << this->last_udp_send_correct_one_interval_;
-    LOG(INFO) << "last_udp_send_correct_one_till_now_: " << this->last_udp_send_correct_one_till_now_;
-    LOG(INFO) << "last_udp_send_two_interval_: " << this->last_udp_send_two_interval_;
-    LOG(INFO) << "last_udp_send_two_till_now_: " << this->last_udp_send_two_till_now_;
-    LOG(INFO) << "last_udp_send_correct_two_interval_: " << this->last_udp_send_correct_two_interval_;
-    LOG(INFO) << "last_udp_send_correct_two_till_now_: " << this->last_udp_send_correct_two_till_now_;
-    LOG(INFO) << "last_udp_send_interval_: " << this->last_udp_send_interval_;
-    LOG(INFO) << "last_publish_interval_: " << this->last_publish_interval_;
-    LOG(INFO) << "last_publish_till_now_: " << this->last_publish_till_now_;
+    logMarkers();
+    LOG_INFO << "last_udp_receive_interval_: " << this->last_udp_receive_interval_;
+    LOG_INFO << "last_udp_receive_till_now_: " << this->last_udp_receive_till_now_;
+    LOG_INFO << "last_udp_receive_correct_interval_: " << this->last_udp_receive_correct_interval_;
+    LOG_INFO << "last_udp_receive_correct_till_now_: " << this->last_udp_receive_correct_till_now_;
+    LOG_INFO << "last_udp_send_one_interval_: " << this->last_udp_send_one_interval_;
+    LOG_INFO << "last_udp_send_one_till_now_: " << this->last_udp_send_one_till_now_;
+    LOG_INFO << "last_udp_send_correct_one_interval_: " << this->last_udp_send_correct_one_interval_;
+    LOG_INFO << "last_udp_send_correct_one_till_now_: " << this->last_udp_send_correct_one_till_now_;
+    LOG_INFO << "last_udp_send_two_interval_: " << this->last_udp_send_two_interval_;
+    LOG_INFO << "last_udp_send_two_till_now_: " << this->last_udp_send_two_till_now_;
+    LOG_INFO << "last_udp_send_correct_two_interval_: " << this->last_udp_send_correct_two_interval_;
+    LOG_INFO << "last_udp_send_correct_two_till_now_: " << this->last_udp_send_correct_two_till_now_;
+    LOG_INFO << "last_udp_send_interval_: " << this->last_udp_send_interval_;
+    LOG_INFO << "last_publish_interval_: " << this->last_publish_interval_;
+    LOG_INFO << "last_publish_till_now_: " << this->last_publish_till_now_;
 }
 
 void CommunicationProcess::paramsInit() {
-    //// todo change default value
+    while (!(this->private_nh_.getParam("ecu_ip", this->yaml_params_.ecu_ip))) {
+        ROS_ERROR_STREAM("param not retrieved");
+    }
+    while (!(this->private_nh_.getParam("ecu_port", this->yaml_params_.ecu_port))) {
+        ROS_ERROR_STREAM("param not retrieved");
+    }
+    while (!(this->private_nh_.getParam("udp_server_port", this->yaml_params_.udp_server_port))) {
+        ROS_ERROR_STREAM("param not retrieved");
+    }
+    this->yaml_params_.verbose_log = this->private_nh_.param("verbose_log", false);
     this->yaml_params_.reconfig = this->private_nh_.param("reconfig", false);
-    this->yaml_params_.fake_issue = this->private_nh_.param("fake_issue", false);
     this->yaml_params_.send_default_when_no_msg = this->private_nh_.param("send_default_when_no_msg", false);
-    this->yaml_params_.ecu_ip = this->private_nh_.param<std::string>("ecu_ip", "192.168.1.22");
-    this->yaml_params_.ecu_port = (uint16_t)this->private_nh_.param("ecu_port", 8080);
-    this->yaml_params_.udp_server_port = (uint16_t)this->private_nh_.param("udp_server_port", 8081);
     this->yaml_params_.publish_period = this->private_nh_.param("publish_period", 20) * 0.001;
     this->yaml_params_.check_period = this->private_nh_.param("check_period", 200) * 0.001;
     this->yaml_params_.essential_msg_max_period = this->private_nh_.param("essential_msg_max_period", 100) * 0.001;
     this->yaml_params_.well_work_display_period = this->private_nh_.param("well_work_display_period", 1000) * 0.001;
 
+    //// todo params check
+
+    this->verbose_log_ = this->yaml_params_.verbose_log;
     this->reconfig_ = this->yaml_params_.reconfig;
-    this->fake_issue_ = this->yaml_params_.fake_issue;
     this->send_default_when_no_msg_ = this->yaml_params_.send_default_when_no_msg;
     this->ecu_ip_ = this->yaml_params_.ecu_ip;
-    this->ecu_port_ = this->yaml_params_.ecu_port;
-    this->udp_server_port_ = this->yaml_params_.udp_server_port;
+    this->ecu_port_ = (uint16_t)this->yaml_params_.ecu_port;
+    this->udp_server_port_ = (uint16_t)this->yaml_params_.udp_server_port;
     this->publish_period_ = this->yaml_params_.publish_period;
     this->check_period_ = this->yaml_params_.check_period;
     this->essential_msg_max_period_ = this->yaml_params_.essential_msg_max_period;
     this->well_work_display_period_ = this->yaml_params_.well_work_display_period;
 
     //// check_period > essential_msg_max_period
-    if (this->check_period_ < (this->essential_msg_max_period_ + 0.01)) {
-        this->check_period_ = (this->essential_msg_max_period_ + 0.01);
+    if (this->check_period_ < (2.0 * this->essential_msg_max_period_ + 0.01)) {
+        this->check_period_ = (2.0 * this->essential_msg_max_period_ + 0.01);
+    }
+    if (this->check_period_ < (2.0 * this->publish_period_ + 0.01)) {
+        this->check_period_ = (2.0 * this->publish_period_ + 0.01);
+    }
+    if (this->check_period_ < 0.11) {
+        this->check_period_ = 0.11;
     }
 
     this->udp_send_switch_ = false;
@@ -526,15 +549,57 @@ void CommunicationProcess::setROSmsgUpdateFalse() {
 }
 
 void CommunicationProcess::reconfigureRequest(ecu_communication::ecu_communicationConfig &config, uint32_t level) {
-    //// todo
+    if (config.params_lock) {
+        ROS_WARN_STREAM("params locked, not set!");
+        return;
+    }
+    this->params_.fromConfig(config);
+    ROS_WARN_STREAM("params set!");
 }
 
 void CommunicationProcess::fake_issue() {
-    //// todo
+    this->data_download_copied_.data_download_pack_one.work_mode = (int)three_one_control::work_mode::curvature_and_vehicle_speed;
+    if (this->params_.issue_speed_fake) {
+        this->data_download_copied_.data_download_pack_one.expect_vehicle_speed = (uint8_t)this->params_.fake_issue_speed * 10;
+    }
+    if (this->params_.issue_steer_fake) {
+        if (this->params_.fake_issue_steer > 0) {
+            this->data_download_copied_.data_download_pack_one.vehicle_turn_to = int(three_one_control::vehicle_turn_to::right);
+        } else {
+            this->data_download_copied_.data_download_pack_one.vehicle_turn_to = int(three_one_control::vehicle_turn_to::left);
+        }
+        double_t vehicle_length = 5.0;
+        this->data_download_copied_.data_download_pack_one.thousand_times_curvature = (uint16_t)(tan(this->params_.fake_issue_steer * M_PI / 180.0) / vehicle_length * 1000);
+    }
+    if (this->params_.issue_gear_fake) {
+        switch (this->params_.fake_issue_gear) {
+            case (this->params_.fake_issue_gear_D): {
+                this->data_download_copied_.data_download_pack_one.vehicle_gear = (int)three_one_control::vehicle_gear::D;
+                break;
+            }
+            case (this->params_.fake_issue_gear_R): {
+                this->data_download_copied_.data_download_pack_one.vehicle_gear = (int)three_one_control::vehicle_gear::R;
+                break;
+            }
+            default: {
+                this->data_download_copied_.data_download_pack_one.vehicle_gear = (int)three_one_control::vehicle_gear::N;
+                break;
+            }
+        }
+    }
 }
 
 void CommunicationProcess::logMarkers() {
-    LOG_INFO <<
+    LOG_INFO << "ros msg update result: " << (int)this->ros_msg_update_.essential.result;
+    LOG_INFO << "udp_receive_switch_: " << this->udp_receive_switch_;
+    LOG_INFO << "udp_send_switch_: " << this->udp_send_switch_;
+    LOG_INFO << "ros_publish_switch_: " << this->ros_publish_switch_;
+    LOG_INFO << "send_default_when_no_msg_: " << this->send_default_when_no_msg_;
+    LOG_INFO << "reconfig_: " << this->reconfig_;
+    LOG_INFO << "verbose_log_: " << this->verbose_log_;
+
+    LOG_INFO << "params_lock: " << this->params_.params_lock;
+    LOG_INFO << "fake_issue: " << this->params_.fake_issue;
 }
 
 }

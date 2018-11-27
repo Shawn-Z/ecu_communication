@@ -2,6 +2,7 @@
 #define ECU_COMMUNICATION_COMMUNICATIONPROCESS_HPP
 
 #include <ros/ros.h>
+#include <cmath>
 #include <thread>
 #include <mutex>
 #include <vector>
@@ -10,6 +11,7 @@
 #include "ecu_communication/ecu_communicationParameters.h"
 #include "three_one_msgs/control.h"
 #include "three_one_msgs/report.h"
+#include "ThreeOne.hpp"
 #include "UDPClient.hpp"
 #include "UDPServer.hpp"
 #include "DataUpload.hpp"
@@ -40,16 +42,16 @@ struct ros_msg_update_type {
 };
 
 struct yaml_params_type {
+    bool send_default_when_no_msg;
+    bool reconfig;
+    bool verbose_log;
+    std::string ecu_ip;
+    int ecu_port;
+    int udp_server_port;
     double_t publish_period;
     double_t check_period;
-    std::string ecu_ip;
-    uint16_t ecu_port;
-    uint16_t udp_server_port;
-    bool send_default_when_no_msg;
     double_t well_work_display_period;
     double_t essential_msg_max_period;
-    bool fake_issue;
-    bool reconfig;
 };
 
 
@@ -81,7 +83,7 @@ private:
     bool ros_publish_switch_;
     bool send_default_when_no_msg_;
     bool reconfig_;
-    bool fake_issue_;
+    bool verbose_log_;
 
     //// UDP communication
     UDPServer udp_server_;
@@ -145,13 +147,12 @@ private:
     void dataUploadCopy();
     bool msgDistribution();
     void dataDownloadCopy(uint8_t pack_num);
-    void fake_issue(); //// todo implement
+    void fake_issue();
     void timeCheck();
     void errorLog(communication_process_error_type p_error);
     void logMarkers();
+    void logVerboseInfo();
     void setROSmsgUpdateFalse();
-
-    void logVerboseInfo(); //// todo
 };
 
 }
