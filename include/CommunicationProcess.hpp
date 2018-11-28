@@ -104,6 +104,7 @@ private:
     uint16_t ecu_port_;
     std::thread udp_receive_thread;
     std::thread udp_send_thread;
+    int udp_receive_ID_;
 
     //// UDP communication data and variables
     DataUpload data_upload_;
@@ -127,6 +128,18 @@ private:
     double_t last_udp_receive_correct_time_[2] = {0.0, 0.0};
     double_t last_udp_receive_correct_interval_ = 0;
     double_t last_udp_receive_correct_till_now_ = 0;
+    double_t last_udp_recv_1_correct_time_[2] = {0.0, 0.0};
+    double_t last_udp_recv_1_correct_interval_ = 0;
+    double_t last_udp_recv_1_correct_till_now_ = 0;
+    double_t last_udp_recv_2_correct_time_[2] = {0.0, 0.0};
+    double_t last_udp_recv_2_correct_interval_ = 0;
+    double_t last_udp_recv_2_correct_till_now_ = 0;
+    double_t last_udp_recv_3_correct_time_[2] = {0.0, 0.0};
+    double_t last_udp_recv_3_correct_interval_ = 0;
+    double_t last_udp_recv_3_correct_till_now_ = 0;
+    double_t last_udp_recv_4_correct_time_[2] = {0.0, 0.0};
+    double_t last_udp_recv_4_correct_interval_ = 0;
+    double_t last_udp_recv_4_correct_till_now_ = 0;
 
     double_t last_udp_send_one_time_[2] = {0.0, 0.0};
     double_t last_udp_send_one_interval_ = 0;

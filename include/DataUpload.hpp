@@ -88,7 +88,7 @@ public:
     ID_calculate_type ID_calculate;
 
     DataUpload();
-    bool dataDistribution();
+    int dataDistribution();
 };
 
 }
