@@ -42,6 +42,10 @@ struct ros_msg_update_type {
 };
 
 struct yaml_params_type {
+    bool upper_layer_send;
+    bool upper_layer_receive;
+    bool lower_layer_send;
+    bool lower_layer_receive;
     bool send_default_when_no_msg;
     bool reconfig;
     bool verbose_log;
@@ -61,6 +65,12 @@ public:
     ~CommunicationProcess();
 
 private:
+    //// Functions Switch
+    bool upper_layer_send_;
+    bool upper_layer_receive_;
+    bool lower_layer_send_;
+    bool lower_layer_receive_;
+
     //// ROS Variables
     ros::NodeHandle nh_;
     ros::NodeHandle private_nh_;
@@ -84,6 +94,7 @@ private:
     bool send_default_when_no_msg_;
     bool reconfig_;
     bool verbose_log_;
+    bool time_check_no_error_;
 
     //// UDP communication
     UDPServer udp_server_;
@@ -149,6 +160,10 @@ private:
     void dataDownloadCopy(uint8_t pack_num);
     void fake_issue();
     void timeCheck();
+    void udpReceiveCheck();
+    void udpSendCheck();
+    void rosPublishCheck();
+    void rosmsgUpdateCheck();
     void errorLog(communication_process_error_type p_error);
     void logMarkers();
     void logVerboseInfo();

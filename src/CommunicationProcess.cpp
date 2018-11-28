@@ -28,23 +28,29 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
         this->reconfigSrv_.setCallback(boost::bind(&CommunicationProcess::reconfigureRequest, this, _1, _2));
     }
 
-    //// udp receive
-    this->udp_receive_thread = std::thread(&CommunicationProcess::udpReceive, this);
-    this->udp_receive_thread.detach();
+    if (this->lower_layer_receive_) {
+        //// udp receive
+        this->udp_receive_thread = std::thread(&CommunicationProcess::udpReceive, this);
+        this->udp_receive_thread.detach();
+    }
 
-    //// udp send
-    this->udp_send_thread = std::thread(&CommunicationProcess::udpSend, this);
-    this->udp_send_thread.detach();
+    if (this->lower_layer_send_) {
+        //// udp send
+        this->udp_send_thread = std::thread(&CommunicationProcess::udpSend, this);
+        this->udp_send_thread.detach();
+    }
 
-    //// timer for process and publish
-    this->data_process_timer_ = this->nh_.createTimer(ros::Duration(this->publish_period_),
-                                                      boost::bind(&CommunicationProcess::dataProcess, this));
+    if (this->upper_layer_send_) {
+        //// timer for process and publish
+        this->data_process_timer_ = this->nh_.createTimer(ros::Duration(this->publish_period_),
+                                                          boost::bind(&CommunicationProcess::dataProcess, this));
+        //// add publisher here
+        this->recv_data_publisher_ = this->nh_.advertise<three_one_msgs::report>("/ecudatareport", 1);
+    }
 
-    //// add publisher here
-    this->recv_data_publisher_ = this->nh_.advertise<three_one_msgs::report>("/ecudatareport", 1);
-
-    //// add subscriber here
-
+    if (this->upper_layer_receive_) {
+        //// add subscriber here
+    }
 
     this->udp_receive_switch_ = true;
 
@@ -393,78 +399,22 @@ void CommunicationProcess::timeCheck() {
 
     this->tmp_ros_time_now_ = ros::Time::now().toSec() * 1000;
 
-    this->last_udp_receive_interval_ = this->last_udp_receive_time_[1] - this->last_udp_receive_time_[0];
-    this->last_udp_receive_till_now_ = this->tmp_ros_time_now_ - this->last_udp_receive_time_[1];
+    this->time_check_no_error_ = true;
 
-    this->last_udp_receive_correct_interval_ = this->last_udp_receive_correct_time_[1] - this->last_udp_receive_correct_time_[0];
-    this->last_udp_receive_correct_till_now_ = this->tmp_ros_time_now_ - this->last_udp_receive_correct_time_[1];
-
-    this->last_udp_send_one_interval_ = this->last_udp_send_one_time_[1] - this->last_udp_send_one_time_[0];
-    this->last_udp_send_one_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_one_time_[1];
-
-    this->last_udp_send_correct_one_interval_ = this->last_udp_send_correct_one_time_[1] - this->last_udp_send_correct_one_time_[0];
-    this->last_udp_send_correct_one_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_correct_one_time_[1];
-
-    this->last_udp_send_two_interval_ = this->last_udp_send_two_time_[1] - this->last_udp_send_two_time_[0];
-    this->last_udp_send_two_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_two_time_[1];
-
-    this->last_udp_send_correct_two_interval_ = this->last_udp_send_correct_two_time_[1] - this->last_udp_send_correct_two_time_[0];
-    this->last_udp_send_correct_two_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_correct_two_time_[1];
-
-    this->last_udp_send_interval_ = fabs(this->last_udp_send_one_time_[1] - this->last_udp_send_two_time_[1]);
-
-    this->last_publish_interval_ = this->last_publish_time_[1] - this->last_publish_time_[0];
-    this->last_publish_till_now_ = this->tmp_ros_time_now_ - this->last_publish_time_[1];
-
-
-    bool no_error = true;
-
-    if ((this->udp_send_switch_) &&
-        ((this->last_udp_send_one_interval_ < 45) ||
-         (this->last_udp_send_correct_one_interval_ > 55) ||
-         (this->last_udp_send_two_interval_ < 45) ||
-         (this->last_udp_send_correct_two_interval_ > 55) ||
-         (this->last_udp_send_correct_one_till_now_ > 60) ||
-         (this->last_udp_send_correct_two_till_now_ > 60) ||
-         (this->last_udp_send_interval_ < 20) ||
-         (this->last_udp_send_interval_ > 30))) {
-        no_error = false;
-        ROS_ERROR_STREAM("ERROR in UDP Send!");
-        errorLog(communication_process_error_type::udp_send_time_error);
+    if (this->lower_layer_send_) {
+        udpSendCheck();
+    }
+    if (this->upper_layer_send_) {
+        rosPublishCheck();
+    }
+    if (lower_layer_receive_) {
+        udpReceiveCheck();
+    }
+    if (upper_layer_receive_) {
+        rosmsgUpdateCheck();
     }
 
-    if ((this->ros_publish_switch_) &&
-        ((this->last_publish_interval_ < 45) ||
-         (this->last_publish_interval_ > 55) ||
-         (this->last_publish_till_now_ > 55))) {
-        no_error = false;
-        ROS_ERROR_STREAM("ERROR in ROS Publish!");
-        errorLog(communication_process_error_type::ros_publish_time_error);
-    }
-
-    if (//(this->udp_receive_switch_) &&
-        ((this->last_udp_receive_interval_ < 8) ||
-         (this->last_udp_receive_correct_interval_ > 25) ||
-         (this->last_udp_receive_correct_till_now_ > 25))) {
-        no_error = false;
-        this->ros_publish_switch_ = false;
-        ROS_ERROR_STREAM("ERROR in UDP Receive!");
-        errorLog(communication_process_error_type::udp_receive_time_error);
-    } else {
-        this->ros_publish_switch_ = this->udp_receive_switch_;
-    }
-
-    if (this->ros_msg_update_.essential.result != this->ros_msg_update_.essential_yes) {
-        no_error = false;
-        this->udp_send_switch_ = false;
-        ROS_ERROR_STREAM("ERROR NO ROS msg Receive!");
-        errorLog(communication_process_error_type::ros_msg_receive_time_over);
-    } else {
-        this->udp_send_switch_ = true;
-    }
-    setROSmsgUpdateFalse();
-
-    if (no_error) {
+    if (this->time_check_no_error_) {
         ROS_INFO_STREAM_THROTTLE(std::max((int)(this->well_work_display_period_ / this->check_period_), 1), "work well");
     }
 
@@ -493,6 +443,19 @@ void CommunicationProcess::logVerboseInfo() {
 }
 
 void CommunicationProcess::paramsInit() {
+    while (!(this->private_nh_.getParam("upper_layer_send", this->yaml_params_.upper_layer_send))) {
+        ROS_ERROR_STREAM("param not retrieved");
+    }
+    while (!(this->private_nh_.getParam("upper_layer_receive", this->yaml_params_.upper_layer_receive))) {
+        ROS_ERROR_STREAM("param not retrieved");
+    }
+    while (!(this->private_nh_.getParam("lower_layer_send", this->yaml_params_.lower_layer_send))) {
+        ROS_ERROR_STREAM("param not retrieved");
+    }
+    while (!(this->private_nh_.getParam("lower_layer_receive", this->yaml_params_.lower_layer_receive))) {
+        ROS_ERROR_STREAM("param not retrieved");
+    }
+
     while (!(this->private_nh_.getParam("ecu_ip", this->yaml_params_.ecu_ip))) {
         ROS_ERROR_STREAM("param not retrieved");
     }
@@ -511,7 +474,12 @@ void CommunicationProcess::paramsInit() {
     this->yaml_params_.well_work_display_period = this->private_nh_.param("well_work_display_period", 1000) * 0.001;
 
     //// todo params check
+    //// todo log params
 
+    this->upper_layer_send_ = this->yaml_params_.upper_layer_send;
+    this->upper_layer_receive_ = this->yaml_params_.upper_layer_receive;
+    this->lower_layer_send_ = this->yaml_params_.lower_layer_send;
+    this->lower_layer_receive_ = this->yaml_params_.lower_layer_receive;
     this->verbose_log_ = this->yaml_params_.verbose_log;
     this->reconfig_ = this->yaml_params_.reconfig;
     this->send_default_when_no_msg_ = this->yaml_params_.send_default_when_no_msg;
@@ -594,12 +562,85 @@ void CommunicationProcess::logMarkers() {
     LOG_INFO << "udp_receive_switch_: " << this->udp_receive_switch_;
     LOG_INFO << "udp_send_switch_: " << this->udp_send_switch_;
     LOG_INFO << "ros_publish_switch_: " << this->ros_publish_switch_;
-    LOG_INFO << "send_default_when_no_msg_: " << this->send_default_when_no_msg_;
-    LOG_INFO << "reconfig_: " << this->reconfig_;
-    LOG_INFO << "verbose_log_: " << this->verbose_log_;
 
     LOG_INFO << "params_lock: " << this->params_.params_lock;
     LOG_INFO << "fake_issue: " << this->params_.fake_issue;
+}
+
+void CommunicationProcess::udpSendCheck() {
+    this->last_udp_send_one_interval_ = this->last_udp_send_one_time_[1] - this->last_udp_send_one_time_[0];
+    this->last_udp_send_one_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_one_time_[1];
+
+    this->last_udp_send_correct_one_interval_ = this->last_udp_send_correct_one_time_[1] - this->last_udp_send_correct_one_time_[0];
+    this->last_udp_send_correct_one_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_correct_one_time_[1];
+
+    this->last_udp_send_two_interval_ = this->last_udp_send_two_time_[1] - this->last_udp_send_two_time_[0];
+    this->last_udp_send_two_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_two_time_[1];
+
+    this->last_udp_send_correct_two_interval_ = this->last_udp_send_correct_two_time_[1] - this->last_udp_send_correct_two_time_[0];
+    this->last_udp_send_correct_two_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_correct_two_time_[1];
+
+    this->last_udp_send_interval_ = fabs(this->last_udp_send_one_time_[1] - this->last_udp_send_two_time_[1]);
+
+    if ((this->udp_send_switch_) &&
+        ((this->last_udp_send_one_interval_ < 45) ||
+         (this->last_udp_send_correct_one_interval_ > 55) ||
+         (this->last_udp_send_two_interval_ < 45) ||
+         (this->last_udp_send_correct_two_interval_ > 55) ||
+         (this->last_udp_send_correct_one_till_now_ > 60) ||
+         (this->last_udp_send_correct_two_till_now_ > 60) ||
+         (this->last_udp_send_interval_ < 20) ||
+         (this->last_udp_send_interval_ > 30))) {
+        this->time_check_no_error_ = false;
+        ROS_ERROR_STREAM("ERROR in UDP Send!");
+        errorLog(communication_process_error_type::udp_send_time_error);
+    }
+}
+
+void CommunicationProcess::rosPublishCheck() {
+    this->last_publish_interval_ = this->last_publish_time_[1] - this->last_publish_time_[0];
+    this->last_publish_till_now_ = this->tmp_ros_time_now_ - this->last_publish_time_[1];
+
+    if ((this->ros_publish_switch_) &&
+        ((this->last_publish_interval_ < 45) ||
+         (this->last_publish_interval_ > 55) ||
+         (this->last_publish_till_now_ > 55))) {
+        this->time_check_no_error_ = false;
+        ROS_ERROR_STREAM("ERROR in ROS Publish!");
+        errorLog(communication_process_error_type::ros_publish_time_error);
+    }
+}
+
+void CommunicationProcess::udpReceiveCheck() {
+    this->last_udp_receive_interval_ = this->last_udp_receive_time_[1] - this->last_udp_receive_time_[0];
+    this->last_udp_receive_till_now_ = this->tmp_ros_time_now_ - this->last_udp_receive_time_[1];
+
+    this->last_udp_receive_correct_interval_ = this->last_udp_receive_correct_time_[1] - this->last_udp_receive_correct_time_[0];
+    this->last_udp_receive_correct_till_now_ = this->tmp_ros_time_now_ - this->last_udp_receive_correct_time_[1];
+
+    if (//(this->udp_receive_switch_) &&
+            ((this->last_udp_receive_interval_ < 8) ||
+             (this->last_udp_receive_correct_interval_ > 25) ||
+             (this->last_udp_receive_correct_till_now_ > 25))) {
+        this->time_check_no_error_ = false;
+        this->ros_publish_switch_ = false;
+        ROS_ERROR_STREAM("ERROR in UDP Receive!");
+        errorLog(communication_process_error_type::udp_receive_time_error);
+    } else {
+        this->ros_publish_switch_ = this->udp_receive_switch_;
+    }
+}
+
+void CommunicationProcess::rosmsgUpdateCheck() {
+    if (this->ros_msg_update_.essential.result != this->ros_msg_update_.essential_yes) {
+        this->time_check_no_error_ = false;
+        this->udp_send_switch_ = false;
+        ROS_ERROR_STREAM("ERROR NO ROS msg Receive!");
+        errorLog(communication_process_error_type::ros_msg_receive_time_over);
+    } else {
+        this->udp_send_switch_ = true;
+    }
+    setROSmsgUpdateFalse();
 }
 
 }
