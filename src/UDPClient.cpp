@@ -17,7 +17,7 @@ bool UDPClient::init(const char *ip_send_to, uint16_t port_send_to) {
     return true;
 }
 
-bool UDPClient::process(uint8_t *buffer, intmax_t buffer_size) {
+bool UDPClient::process(uint8_t *buffer, int64_t buffer_size) {
     this->send_len_ = sendto(this->client_sockfd_, buffer, buffer_size, 0, (struct sockaddr *)(&this->server_ip_), sizeof(this->server_ip_));
     if (this->send_len_ != buffer_size) {
         this->error = udp_client_error_type::send_error;
@@ -31,7 +31,7 @@ UDPClient::UDPClient() {
     bzero(&this->server_ip_, sizeof(this->server_ip_));
 }
 
-intmax_t UDPClient::get_send_len() {
+int64_t UDPClient::get_send_len() {
     return this->send_len_;
 }
 

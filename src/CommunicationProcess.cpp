@@ -67,7 +67,10 @@ void CommunicationProcess::udpReceive() {
     while (!(this->udp_server_.init(this->udp_server_port_))) {
         ROS_ERROR_STREAM("UDP RECEIVE INIT FAILURE, KEEP TRYING!");
     }
-    while (this->udp_receive_switch_) {
+    while (ros::ok()) {
+        if (!this->udp_receive_switch_) {
+            continue;
+        }
         if (this->udp_server_.process(this->data_upload_.recv_raw_data, sizeof(this->data_upload_.recv_raw_data))) {
             this->last_udp_receive_time_[0] = this->last_udp_receive_time_[1];
             this->last_udp_receive_time_[1] = ros::Time::now().toSec() * 1000;

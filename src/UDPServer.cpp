@@ -19,7 +19,7 @@ bool UDPServer::init(uint16_t port) {
     return true;
 }
 
-bool UDPServer::process(uint8_t *buffer, uintmax_t buffer_size) {
+bool UDPServer::process(uint8_t *buffer, int64_t buffer_size) {
     bzero(buffer, buffer_size);
     bzero(&this->client_ip_, sizeof(this->client_ip_));
     this->client_ip_len_ = sizeof(this->client_ip_);
@@ -43,7 +43,7 @@ UDPServer::UDPServer() {
     bzero(&this->client_ip_, sizeof(this->client_ip_));
 }
 
-intmax_t UDPServer::get_recv_len() {
+int64_t UDPServer::get_recv_len() {
     return this->recv_len_;
 }
 

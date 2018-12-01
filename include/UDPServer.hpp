@@ -22,15 +22,15 @@ public:
     udp_server_error_type error;
     UDPServer();
     bool init(uint16_t port);
-    bool process(uint8_t *buffer, uintmax_t buffer_size);
+    bool process(uint8_t *buffer, int64_t buffer_size);
     const char* getClientIP();
-    intmax_t get_recv_len();
+    int64_t get_recv_len();
 
 private:
     int server_sockfd_;
     sockaddr_in server_ip_;
     sockaddr_in client_ip_;
-    intmax_t recv_len_;
+    int64_t recv_len_;
     socklen_t client_ip_len_;
 };
 
