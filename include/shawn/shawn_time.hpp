@@ -1,0 +1,116 @@
+#ifndef SHAWN_TIME_HPP
+#define SHAWN_TIME_HPP
+
+#include <chrono>
+#include <vector>
+#include <ctime>
+#include <stdint.h>
+#include <shawn/shawn_vector.hpp>
+
+namespace shawn {
+
+class ShawnTime {
+public:
+    shawn_vector shawnVector;
+
+    std::vector<size_t> error_positions;
+
+    std::chrono::time_point<std::chrono::steady_clock> simple_start_time_point;
+
+    std::vector<std::chrono::time_point<std::chrono::steady_clock>> last_timestamps;
+    std::vector<std::chrono::time_point<std::chrono::steady_clock>> last_last_timestamps;
+    std::vector<double> timestamps_duration_ms;
+    std::vector<double> timestamps_till_now_ms;
+
+    std::chrono::time_point<std::chrono::steady_clock> getNowTimePoint() {
+        return std::chrono::steady_clock::now();
+    };
+
+    void pushTimestamp(size_t p_position, std::chrono::time_point<std::chrono::steady_clock> p_time_point = std::chrono::steady_clock::now()) {
+        if (this->last_timestamps.size() < (p_position + 1)) {
+            this->last_timestamps.resize(p_position + 1);
+        }
+        shawnVector.unifySize(this->last_timestamps, this->last_last_timestamps);
+        this->last_last_timestamps[p_position] = this->last_timestamps[p_position];
+        this->last_timestamps[p_position] = p_time_point;
+    }
+
+    double getDurationMs(size_t p_position) {
+        if (this->last_timestamps.size() < (p_position + 1)) {
+            return 0;
+        }
+        return 1000 * std::chrono::duration_cast<std::chrono::duration<double>>(this->last_timestamps[p_position] - this->last_last_timestamps[p_position]).count();
+    }
+
+    double getTillNowMs(size_t p_position) {
+        if (this->last_timestamps.size() < (p_position + 1)) {
+            return 0;
+        }
+        return 1000 * std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - this->last_timestamps[p_position]).count();
+    }
+
+    void setSimpleStartTimePoint() {
+        this->simple_start_time_point = std::chrono::steady_clock::now();
+    }
+
+    double getSimpleDurationMs() {
+        return 1000 * std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - this->simple_start_time_point).count();
+    }
+
+    void updateTimestampsDuration() {
+        shawnVector.unifySize(this->last_timestamps, this->last_last_timestamps);
+        shawnVector.unifySize(this->last_timestamps, this->timestamps_duration_ms);
+        for (size_t i = 0; i < this->last_timestamps.size(); ++i) {
+            this->timestamps_duration_ms[i] = 1000 * std::chrono::duration_cast<std::chrono::duration<double>>(this->last_timestamps[i] - this->last_last_timestamps[i]).count();
+        }
+    }
+
+    void updateTimestampsTillNow(std::chrono::time_point<std::chrono::steady_clock> p_now = std::chrono::steady_clock::now()) {
+        shawnVector.unifySize(this->last_timestamps, this->timestamps_till_now_ms);
+        for (size_t i = 0; i < this->last_timestamps.size(); ++i) {
+            this->timestamps_till_now_ms[i] = 1000 * std::chrono::duration_cast<std::chrono::duration<double>>(p_now - this->last_timestamps[i]).count();
+        }
+    }
+
+    bool checkTimestampsDuration(double p_min = -1, double p_max = -1) {
+        this->error_positions.clear();
+        if (p_min > 0) {
+            for (size_t i = 0; i < this->timestamps_duration_ms.size(); ++i) {
+                if (this->timestamps_duration_ms[i] < p_min) {
+                    this->error_positions.emplace_back(i);
+                }
+            }
+        }
+        if (p_max > 0) {
+            for (size_t i = 0; i < this->timestamps_duration_ms.size(); ++i) {
+                if (this->timestamps_duration_ms[i] > p_min) {
+                    this->error_positions.emplace_back(i);
+                }
+            }
+        }
+        return this->error_positions.empty();
+    }
+
+    bool checkTimestampsTillNow(double p_min = -1, double p_max = -1) {
+        this->error_positions.clear();
+        if (p_min > 0) {
+            for (size_t i = 0; i < this->timestamps_till_now_ms.size(); ++i) {
+                if (this->timestamps_till_now_ms[i] < p_min) {
+                    this->error_positions.emplace_back(i);
+                }
+            }
+        }
+        if (p_max > 0) {
+            for (size_t i = 0; i < this->timestamps_till_now_ms.size(); ++i) {
+                if (this->timestamps_till_now_ms[i] > p_min) {
+                    this->error_positions.emplace_back(i);
+                }
+            }
+        }
+        return this->error_positions.empty();
+    }
+};
+
+}
+
+#endif //SHAWN_TIME_HPP
