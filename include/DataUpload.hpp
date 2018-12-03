@@ -88,7 +88,9 @@ public:
     ID_calculate_type ID_calculate;
 
     DataUpload();
-    int dataDistribution();
+    void dataDistribution();
+    int data_pack_num;
+    int dataPackCheck(char * p_recv_raw_data);
 };
 
 }

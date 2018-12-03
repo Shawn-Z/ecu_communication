@@ -1,5 +1,6 @@
 #ifndef ECU_COMMUNICATION_UDPSERVER_HPP
 #define ECU_COMMUNICATION_UDPSERVER_HPP
+#define BUFFERSIZE 2048
 
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -7,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <stdint.h>
 
 namespace ecu_communication {
 
@@ -22,16 +24,17 @@ public:
     udp_server_error_type error;
     UDPServer();
     bool init(uint16_t port);
-    bool process(uint8_t *buffer, int64_t buffer_size);
+    void process();
     const char* getClientIP();
-    int64_t get_recv_len();
+    intmax_t get_recv_len();
 
-private:
-    int server_sockfd_;
-    sockaddr_in server_ip_;
-    sockaddr_in client_ip_;
-    int64_t recv_len_;
-    socklen_t client_ip_len_;
+public:
+    int server_sockfd;
+    sockaddr_in server_ip;
+    sockaddr_in client_ip;
+    intmax_t recv_len;
+    socklen_t client_ip_len;
+    uint8_t buffer[BUFFERSIZE];
 };
 
 }

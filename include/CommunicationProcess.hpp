@@ -16,6 +16,7 @@
 #include "UDPServer.hpp"
 #include "DataUpload.hpp"
 #include "DataDownload.hpp"
+#include "shawn/shawn_time.hpp"
 
 namespace ecu_communication {
 
@@ -64,7 +65,20 @@ public:
     CommunicationProcess(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle);
     ~CommunicationProcess();
 
-private:
+public:
+    //// time check
+    //// 0 simple udp recv time
+    //// 1 simple udp recv length correct time
+    shawn::ShawnTime udp_recv_times_;
+    //// 0 simple udp send time
+    shawn::ShawnTime udp_send_times_;
+    //// 0 1 2 3 for each pack recv time
+    shawn::ShawnTime pack_recv_times_;
+    //// 0 1 for each pack send time
+    shawn::ShawnTime pack_send_times_;
+    //// 0 simple ros publish time
+    shawn::ShawnTime ros_publish_times_;
+
     //// Functions Switch
     bool upper_layer_send_;
     bool upper_layer_receive_;
@@ -104,7 +118,6 @@ private:
     uint16_t ecu_port_;
     std::thread udp_receive_thread;
     std::thread udp_send_thread;
-    int udp_receive_ID_;
 
     //// UDP communication data and variables
     DataUpload data_upload_;
@@ -120,48 +133,6 @@ private:
     double_t publish_period_;
     double_t essential_msg_max_period_;
     double_t well_work_display_period_;
-
-    //// for time check
-    double_t last_udp_receive_time_[2] = {0.0, 0.0};
-    double_t last_udp_receive_interval_ = 0;
-    double_t last_udp_receive_till_now_ = 0;
-    double_t last_udp_receive_correct_time_[2] = {0.0, 0.0};
-    double_t last_udp_receive_correct_interval_ = 0;
-    double_t last_udp_receive_correct_till_now_ = 0;
-    double_t last_udp_recv_1_correct_time_[2] = {0.0, 0.0};
-    double_t last_udp_recv_1_correct_interval_ = 0;
-    double_t last_udp_recv_1_correct_till_now_ = 0;
-    double_t last_udp_recv_2_correct_time_[2] = {0.0, 0.0};
-    double_t last_udp_recv_2_correct_interval_ = 0;
-    double_t last_udp_recv_2_correct_till_now_ = 0;
-    double_t last_udp_recv_3_correct_time_[2] = {0.0, 0.0};
-    double_t last_udp_recv_3_correct_interval_ = 0;
-    double_t last_udp_recv_3_correct_till_now_ = 0;
-    double_t last_udp_recv_4_correct_time_[2] = {0.0, 0.0};
-    double_t last_udp_recv_4_correct_interval_ = 0;
-    double_t last_udp_recv_4_correct_till_now_ = 0;
-
-    double_t last_udp_send_one_time_[2] = {0.0, 0.0};
-    double_t last_udp_send_one_interval_ = 0;
-    double_t last_udp_send_one_till_now_ = 0;
-    double_t last_udp_send_correct_one_time_[2] = {0.0, 0.0};
-    double_t last_udp_send_correct_one_interval_ = 0;
-    double_t last_udp_send_correct_one_till_now_ = 0;
-
-    double_t last_udp_send_two_time_[2] = {0.0, 0.0};
-    double_t last_udp_send_two_interval_ = 0;
-    double_t last_udp_send_two_till_now_ = 0;
-    double_t last_udp_send_correct_two_time_[2] = {0.0, 0.0};
-    double_t last_udp_send_correct_two_interval_ = 0;
-    double_t last_udp_send_correct_two_till_now_ = 0;
-
-    double_t last_udp_send_interval_ = 0;
-
-    double_t last_publish_time_[2] = {0.0, 0.0};
-    double_t last_publish_interval_ = 0;
-    double_t last_publish_till_now_ = 0;
-
-    double_t tmp_ros_time_now_ = 0;
 
     void paramsInit();
     void reconfigureRequest(ecu_communicationConfig &config, uint32_t level);

@@ -21,7 +21,7 @@ public:
     udp_client_error_type error;
     UDPClient();
     bool init(const char *ip_send_to, uint16_t port_send_to);
-    bool process(uint8_t *buffer, int64_t buffer_size);
+    bool process(uint8_t *buffer, size_t buffer_size);
     int64_t get_send_len();
 
 private:

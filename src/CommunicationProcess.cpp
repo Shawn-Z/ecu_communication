@@ -41,11 +41,11 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
 
     if (this->upper_layer_send_) {
+        //// add publisher here
+        this->recv_data_publisher_ = this->nh_.advertise<three_one_msgs::report>("/ecudatareport", 1);
         //// timer for process and publish
         this->data_process_timer_ = this->nh_.createTimer(ros::Duration(this->publish_period_),
                                                           boost::bind(&CommunicationProcess::dataProcess, this));
-        //// add publisher here
-        this->recv_data_publisher_ = this->nh_.advertise<three_one_msgs::report>("/ecudatareport", 1);
     }
 
     if (this->upper_layer_receive_) {
@@ -71,41 +71,15 @@ void CommunicationProcess::udpReceive() {
         if (!this->udp_receive_switch_) {
             continue;
         }
-        if (this->udp_server_.process(this->data_upload_.recv_raw_data, sizeof(this->data_upload_.recv_raw_data))) {
-            this->last_udp_receive_time_[0] = this->last_udp_receive_time_[1];
-            this->last_udp_receive_time_[1] = ros::Time::now().toSec() * 1000;
-            this->data_upload_mutex_.lock();
-            this->udp_receive_ID_ = this->data_upload_.dataDistribution();
-            this->data_upload_mutex_.unlock();
-            if (this->udp_receive_ID_ > 0) {
-                this->last_udp_receive_correct_time_[0] = this->last_udp_receive_correct_time_[1];
-                this->last_udp_receive_correct_time_[1] = ros::Time::now().toSec() * 1000;
-                switch (this->udp_receive_ID_) {
-                    case 1: {
-                        this->last_udp_recv_1_correct_time_[0] = this->last_udp_recv_1_correct_time_[1];
-                        this->last_udp_recv_1_correct_time_[1] = ros::Time::now().toSec() * 1000;
-                        break;
-                    }
-                    case 2: {
-                        this->last_udp_recv_2_correct_time_[0] = this->last_udp_recv_2_correct_time_[1];
-                        this->last_udp_recv_2_correct_time_[1] = ros::Time::now().toSec() * 1000;
-                        break;
-                    }
-                    case 3: {
-                        this->last_udp_recv_3_correct_time_[0] = this->last_udp_recv_3_correct_time_[1];
-                        this->last_udp_recv_3_correct_time_[1] = ros::Time::now().toSec() * 1000;
-                        break;
-                    }
-                    case 4: {
-                        this->last_udp_recv_4_correct_time_[0] = this->last_udp_recv_4_correct_time_[1];
-                        this->last_udp_recv_4_correct_time_[1] = ros::Time::now().toSec() * 1000;
-                        break;
-                    }
-                    default: {
-                        errorLog(communication_process_error_type::udp_recv_ID_error);
-                        break;
-                    }
-                }
+        this->udp_server_.process();
+        this->udp_recv_times_.pushTimestamp(0); //// simple udp recv time
+        if (this->udp_server_.get_recv_len() == 14) {
+            this->udp_recv_times_.pushTimestamp(1); //// simple udp recv correct time
+            if (this->data_upload_.dataPackCheck((char *)this->udp_server_.buffer) > 0) {
+                this->pack_recv_times_.pushTimestamp((size_t)this->data_upload_.data_pack_num - 1);
+                this->data_upload_mutex_.lock();
+                this->data_upload_.dataDistribution();
+                this->data_upload_mutex_.unlock();
             } else {
                 errorLog(communication_process_error_type::udp_recv_ID_error);
             }
@@ -120,7 +94,11 @@ void CommunicationProcess::udpSend() {
         ROS_ERROR_STREAM("UDP SEND INIT FAILURE, KEEP TRYING!");
     }
     ros::Rate loop_rate(20);
-    while (this->udp_send_switch_ || this->send_default_when_no_msg_ || this->params_.fake_issue) {
+    while (ros::ok()) {
+        if (!(this->udp_send_switch_ || this->send_default_when_no_msg_ || this->params_.fake_issue)) {
+            continue;
+        }
+
         dataDownloadCopy(1);
         if (!this->udp_send_switch_) {
             this->data_download_copied_.init();
@@ -128,12 +106,10 @@ void CommunicationProcess::udpSend() {
         if (this->params_.fake_issue) {
             fake_issue();
         }
-        this->last_udp_send_one_time_[0] = this->last_udp_send_one_time_[1];
-        this->last_udp_send_one_time_[1] = ros::Time::now().toSec() * 1000;
         if (this->udp_client_.process(this->data_download_copied_.data_download_pack_one.result_data,
                                       sizeof(this->data_download_copied_.data_download_pack_one.result_data))) {
-            this->last_udp_send_correct_one_time_[0] = this->last_udp_send_correct_one_time_[1];
-            this->last_udp_send_correct_one_time_[1] = ros::Time::now().toSec() * 1000;
+            this->udp_send_times_.pushTimestamp(0);
+            this->pack_send_times_.pushTimestamp(0);
         } else {
             errorLog(communication_process_error_type::udp_send_pack_one_len_error);
         }
@@ -147,12 +123,10 @@ void CommunicationProcess::udpSend() {
         if (this->params_.fake_issue) {
             fake_issue();
         }
-        this->last_udp_send_two_time_[0] = this->last_udp_send_two_time_[1];
-        this->last_udp_send_two_time_[1] = ros::Time::now().toSec() * 1000;
         if (this->udp_client_.process(this->data_download_copied_.data_download_pack_two.result_data,
                                       sizeof(this->data_download_copied_.data_download_pack_two.result_data))) {
-            this->last_udp_send_correct_two_time_[0] = this->last_udp_send_correct_two_time_[1];
-            this->last_udp_send_correct_two_time_[1] = ros::Time::now().toSec() * 1000;
+            this->udp_send_times_.pushTimestamp(0);
+            this->pack_send_times_.pushTimestamp(1);
         } else {
             errorLog(communication_process_error_type::udp_send_pack_two_len_error);
         }
@@ -162,9 +136,6 @@ void CommunicationProcess::udpSend() {
 }
 
 CommunicationProcess::~CommunicationProcess() {
-    //// todo shutdown publisher and subscriber
-    this->recv_data_publisher_.shutdown();
-
     this->time_check_timer_.stop();
     this->data_process_timer_.stop();
 
@@ -175,6 +146,9 @@ CommunicationProcess::~CommunicationProcess() {
     this->params_.fake_issue = false;
     ros::Duration(0.3).sleep();
     this->send_default_when_no_msg_ = false;
+
+    //// todo shutdown publisher and subscriber
+    this->recv_data_publisher_.shutdown();
 
     LOG_INFO << "program end";
     LOG_WARN << "program end";
@@ -190,8 +164,7 @@ void CommunicationProcess::dataProcess() {
     }
     if (this->ros_publish_switch_) {
         this->recv_data_publisher_.publish(this->report_);
-        this->last_publish_time_[0] = this->last_publish_time_[1];
-        this->last_publish_time_[1] = ros::Time::now().toSec() * 1000;
+        this->ros_publish_times_.pushTimestamp(0);
     }
 }
 
@@ -375,44 +348,37 @@ void CommunicationProcess::errorLog(communication_process_error_type p_error) {
             break;
         }
         case 5: {
-            LOG_ERROR << "last_udp_receive_interval_: " << FIXED this->last_udp_receive_interval_;
-            LOG_ERROR << "last_udp_receive_till_now_: " << FIXED this->last_udp_receive_till_now_;
-            LOG_ERROR << "last_udp_receive_correct_interval_: " << FIXED this->last_udp_receive_correct_interval_;
-            LOG_ERROR << "last_udp_receive_correct_till_now_: " << FIXED this->last_udp_receive_correct_till_now_;
-            LOG_ERROR << "last_udp_recv_1_correct_interval_: " << FIXED this->last_udp_recv_1_correct_interval_;
-            LOG_ERROR << "last_udp_recv_1_correct_till_now_: " << FIXED this->last_udp_recv_1_correct_till_now_;
-            LOG_ERROR << "last_udp_recv_2_correct_interval_: " << FIXED this->last_udp_recv_2_correct_interval_;
-            LOG_ERROR << "last_udp_recv_2_correct_till_now_: " << FIXED this->last_udp_recv_2_correct_till_now_;
-            LOG_ERROR << "last_udp_recv_3_correct_interval_: " << FIXED this->last_udp_recv_3_correct_interval_;
-            LOG_ERROR << "last_udp_recv_3_correct_till_now_: " << FIXED this->last_udp_recv_3_correct_till_now_;
-            LOG_ERROR << "last_udp_recv_4_correct_interval_: " << FIXED this->last_udp_recv_4_correct_interval_;
-            LOG_ERROR << "last_udp_recv_4_correct_till_now_: " << FIXED this->last_udp_recv_4_correct_till_now_;
+            LOG_ERROR << "last_udp_receive_interval_: " << FIXED this->udp_recv_times_.outputTimestampsDurationMs(0);
+            LOG_ERROR << "last_udp_receive_till_now_: " << FIXED this->udp_recv_times_.outputTimestampsTillNowMs(0);
+            LOG_ERROR << "last_udp_receive_correct_interval_: " << FIXED this->udp_recv_times_.outputTimestampsDurationMs(1);
+            LOG_ERROR << "last_udp_receive_correct_till_now_: " << FIXED this->udp_recv_times_.outputTimestampsTillNowMs(1);
+            LOG_ERROR << "last_udp_recv_1_correct_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(0);
+            LOG_ERROR << "last_udp_recv_1_correct_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(0);
+            LOG_ERROR << "last_udp_recv_2_correct_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(1);
+            LOG_ERROR << "last_udp_recv_2_correct_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(1);
+            LOG_ERROR << "last_udp_recv_3_correct_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(2);
+            LOG_ERROR << "last_udp_recv_3_correct_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(2);
+            LOG_ERROR << "last_udp_recv_4_correct_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(3);
+            LOG_ERROR << "last_udp_recv_4_correct_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(3);
             break;
         }
         case 6: {
-            LOG_ERROR << "last_udp_send_one_interval_: " << FIXED this->last_udp_send_one_interval_;
-            LOG_ERROR << "last_udp_send_one_till_now_: " << FIXED this->last_udp_send_one_till_now_;
-            LOG_ERROR << "last_udp_send_correct_one_interval_: " << FIXED this->last_udp_send_correct_one_interval_;
-            LOG_ERROR << "last_udp_send_correct_one_till_now_: " << FIXED this->last_udp_send_correct_one_till_now_;
-            LOG_ERROR << "last_udp_send_two_interval_: " << FIXED this->last_udp_send_two_interval_;
-            LOG_ERROR << "last_udp_send_two_till_now_: " << FIXED this->last_udp_send_two_till_now_;
-            LOG_ERROR << "last_udp_send_correct_two_interval_: " << FIXED this->last_udp_send_correct_two_interval_;
-            LOG_ERROR << "last_udp_send_correct_two_till_now_: " << FIXED this->last_udp_send_correct_two_till_now_;
-            LOG_ERROR << "last_udp_send_interval_: " << FIXED this->last_udp_send_interval_;
+            LOG_ERROR << "last_udp_send_interval_: " << FIXED this->udp_send_times_.outputTimestampsDurationMs(0);
+            LOG_ERROR << "last_udp_send_till_now_: " << FIXED this->udp_send_times_.outputTimestampsTillNowMs(0);
+            LOG_ERROR << "last_udp_send_one_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(0);
+            LOG_ERROR << "last_udp_send_one_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(0);
+            LOG_ERROR << "last_udp_send_two_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(1);
+            LOG_ERROR << "last_udp_send_two_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(1);
             break;
         }
         case 7: {
             //// todo may log details
             LOG_ERROR << "udp_receive_data_illegal!";
-//            LOG(ERROR) << "udp_receive_data_illegal: " << std::hex << this->data_upload_copied_.data_upload_pack_one.pack;
-//            LOG(ERROR) << "udp_receive_data_illegal: " << std::hex << this->data_upload_copied_.data_upload_pack_two.pack;
-//            LOG(ERROR) << "udp_receive_data_illegal: " << std::hex << this->data_upload_copied_.data_upload_pack_three.pack;
-//            LOG(ERROR) << "udp_receive_data_illegal: " << std::hex << this->data_upload_copied_.data_upload_pack_four.pack;
             break;
         }
         case 8: {
-            LOG_ERROR << "last_publish_interval_" << FIXED this->last_publish_interval_;
-            LOG_ERROR << "last_publish_till_now_" << FIXED this->last_publish_till_now_;
+            LOG_ERROR << "last_publish_interval_" << FIXED this->ros_publish_times_.outputTimestampsDurationMs(0);
+            LOG_ERROR << "last_publish_till_now_" << FIXED this->ros_publish_times_.outputTimestampsTillNowMs(0);
             break;
         }
         case 9: {
@@ -427,16 +393,6 @@ void CommunicationProcess::errorLog(communication_process_error_type p_error) {
 }
 
 void CommunicationProcess::timeCheck() {
-    //// following rules are not correct always, only serves at same time t.
-    //// last_udp_receive_interval_ <= last_udp_receive_correct_interval_
-    //// last_udp_receive_till_now_ <= last_udp_receive_correct_till_now_
-    //// last_udp_send_one_interval_ <= last_udp_send_correct_one_interval_
-    //// last_udp_send_one_till_now_ <= last_udp_send_correct_one_till_now_
-    //// last_udp_send_two_interval_ <= last_udp_send_correct_two_interval_
-    //// last_udp_send_two_till_now_ <= last_udp_send_correct_two_till_now_
-
-    this->tmp_ros_time_now_ = ros::Time::now().toSec() * 1000;
-
     this->time_check_no_error_ = true;
 
     if (this->lower_layer_send_) {
@@ -463,29 +419,26 @@ void CommunicationProcess::timeCheck() {
 
 void CommunicationProcess::logVerboseInfo() {
     logMarkers();
-    LOG_INFO << "last_udp_receive_interval_: " << FIXED this->last_udp_receive_interval_;
-    LOG_INFO << "last_udp_receive_till_now_: " << FIXED this->last_udp_receive_till_now_;
-    LOG_INFO << "last_udp_receive_correct_interval_: " << FIXED this->last_udp_receive_correct_interval_;
-    LOG_INFO << "last_udp_receive_correct_till_now_: " << FIXED this->last_udp_receive_correct_till_now_;
-    LOG_INFO << "last_udp_recv_1_correct_interval_: " << FIXED this->last_udp_recv_1_correct_interval_;
-    LOG_INFO << "last_udp_recv_1_correct_till_now_: " << FIXED this->last_udp_recv_1_correct_till_now_;
-    LOG_INFO << "last_udp_recv_2_correct_interval_: " << FIXED this->last_udp_recv_2_correct_interval_;
-    LOG_INFO << "last_udp_recv_2_correct_till_now_: " << FIXED this->last_udp_recv_2_correct_till_now_;
-    LOG_INFO << "last_udp_recv_3_correct_interval_: " << FIXED this->last_udp_recv_3_correct_interval_;
-    LOG_INFO << "last_udp_recv_3_correct_till_now_: " << FIXED this->last_udp_recv_3_correct_till_now_;
-    LOG_INFO << "last_udp_recv_4_correct_interval_: " << FIXED this->last_udp_recv_4_correct_interval_;
-    LOG_INFO << "last_udp_recv_4_correct_till_now_: " << FIXED this->last_udp_recv_4_correct_till_now_;
-    LOG_INFO << "last_udp_send_one_interval_: " << FIXED this->last_udp_send_one_interval_;
-    LOG_INFO << "last_udp_send_one_till_now_: " << FIXED this->last_udp_send_one_till_now_;
-    LOG_INFO << "last_udp_send_correct_one_interval_: " << FIXED this->last_udp_send_correct_one_interval_;
-    LOG_INFO << "last_udp_send_correct_one_till_now_: " << FIXED this->last_udp_send_correct_one_till_now_;
-    LOG_INFO << "last_udp_send_two_interval_: " << FIXED this->last_udp_send_two_interval_;
-    LOG_INFO << "last_udp_send_two_till_now_: " << FIXED this->last_udp_send_two_till_now_;
-    LOG_INFO << "last_udp_send_correct_two_interval_: " << FIXED this->last_udp_send_correct_two_interval_;
-    LOG_INFO << "last_udp_send_correct_two_till_now_: " << FIXED this->last_udp_send_correct_two_till_now_;
-    LOG_INFO << "last_udp_send_interval_: " << FIXED this->last_udp_send_interval_;
-    LOG_INFO << "last_publish_interval_: " << FIXED this->last_publish_interval_;
-    LOG_INFO << "last_publish_till_now_: " << FIXED this->last_publish_till_now_;
+    LOG_INFO << "last_udp_receive_interval_: " << FIXED this->udp_recv_times_.outputTimestampsDurationMs(0);
+    LOG_INFO << "last_udp_receive_till_now_: " << FIXED this->udp_recv_times_.outputTimestampsTillNowMs(0);
+    LOG_INFO << "last_udp_receive_correct_interval_: " << FIXED this->udp_recv_times_.outputTimestampsDurationMs(1);
+    LOG_INFO << "last_udp_receive_correct_till_now_: " << FIXED this->udp_recv_times_.outputTimestampsTillNowMs(1);
+    LOG_INFO << "last_udp_recv_1_correct_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(0);
+    LOG_INFO << "last_udp_recv_1_correct_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(0);
+    LOG_INFO << "last_udp_recv_2_correct_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(1);
+    LOG_INFO << "last_udp_recv_2_correct_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(1);
+    LOG_INFO << "last_udp_recv_3_correct_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(2);
+    LOG_INFO << "last_udp_recv_3_correct_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(2);
+    LOG_INFO << "last_udp_recv_4_correct_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(3);
+    LOG_INFO << "last_udp_recv_4_correct_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(3);
+    LOG_INFO << "last_udp_send_interval_: " << FIXED this->udp_send_times_.outputTimestampsDurationMs(0);
+    LOG_INFO << "last_udp_send_till_now_: " << FIXED this->udp_send_times_.outputTimestampsTillNowMs(0);
+    LOG_INFO << "last_udp_send_one_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(0);
+    LOG_INFO << "last_udp_send_one_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(0);
+    LOG_INFO << "last_udp_send_two_interval_: " << FIXED this->pack_recv_times_.outputTimestampsDurationMs(1);
+    LOG_INFO << "last_udp_send_two_till_now_: " << FIXED this->pack_recv_times_.outputTimestampsTillNowMs(1);
+    LOG_INFO << "last_publish_interval_" << FIXED this->ros_publish_times_.outputTimestampsDurationMs(0);
+    LOG_INFO << "last_publish_till_now_" << FIXED this->ros_publish_times_.outputTimestampsTillNowMs(0);
 }
 
 void CommunicationProcess::paramsInit() {
@@ -572,6 +525,7 @@ void CommunicationProcess::reconfigureRequest(ecu_communication::ecu_communicati
 }
 
 void CommunicationProcess::fake_issue() {
+    //// todo cancel halt
     this->data_download_copied_.data_download_pack_one.work_mode = (int)three_one_control::work_mode::curvature_and_vehicle_speed;
     if (this->params_.issue_speed_fake) {
         this->data_download_copied_.data_download_pack_one.expect_vehicle_speed = (uint8_t)this->params_.fake_issue_speed * 10;
@@ -614,29 +568,11 @@ void CommunicationProcess::logMarkers() {
 }
 
 void CommunicationProcess::udpSendCheck() {
-    this->last_udp_send_one_interval_ = this->last_udp_send_one_time_[1] - this->last_udp_send_one_time_[0];
-    this->last_udp_send_one_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_one_time_[1];
-
-    this->last_udp_send_correct_one_interval_ = this->last_udp_send_correct_one_time_[1] - this->last_udp_send_correct_one_time_[0];
-    this->last_udp_send_correct_one_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_correct_one_time_[1];
-
-    this->last_udp_send_two_interval_ = this->last_udp_send_two_time_[1] - this->last_udp_send_two_time_[0];
-    this->last_udp_send_two_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_two_time_[1];
-
-    this->last_udp_send_correct_two_interval_ = this->last_udp_send_correct_two_time_[1] - this->last_udp_send_correct_two_time_[0];
-    this->last_udp_send_correct_two_till_now_ = this->tmp_ros_time_now_ - this->last_udp_send_correct_two_time_[1];
-
-    this->last_udp_send_interval_ = fabs(this->last_udp_send_one_time_[1] - this->last_udp_send_two_time_[1]);
-
     if ((this->udp_send_switch_) &&
-        ((this->last_udp_send_one_interval_ < 45) ||
-         (this->last_udp_send_correct_one_interval_ > 55) ||
-         (this->last_udp_send_two_interval_ < 45) ||
-         (this->last_udp_send_correct_two_interval_ > 55) ||
-         (this->last_udp_send_correct_one_till_now_ > 60) ||
-         (this->last_udp_send_correct_two_till_now_ > 60) ||
-         (this->last_udp_send_interval_ < 20) ||
-         (this->last_udp_send_interval_ > 30))) {
+        ((!this->udp_send_times_.checkTimestampsDuration(20, 30)) ||
+         (!this->udp_send_times_.checkTimestampsTillNow(-1, 30)) ||
+         (!this->pack_send_times_.checkTimestampsDuration(45, 55)) ||
+         (!this->pack_send_times_.checkTimestampsTillNow(-1, 55)))) {
         this->time_check_no_error_ = false;
         ROS_ERROR_STREAM("ERROR in UDP Send!");
         errorLog(communication_process_error_type::udp_send_time_error);
@@ -644,13 +580,9 @@ void CommunicationProcess::udpSendCheck() {
 }
 
 void CommunicationProcess::rosPublishCheck() {
-    this->last_publish_interval_ = this->last_publish_time_[1] - this->last_publish_time_[0];
-    this->last_publish_till_now_ = this->tmp_ros_time_now_ - this->last_publish_time_[1];
-
     if ((this->ros_publish_switch_) &&
-        ((this->last_publish_interval_ < 45) ||
-         (this->last_publish_interval_ > 55) ||
-         (this->last_publish_till_now_ > 55))) {
+        ((!this->ros_publish_times_.checkTimestampsDuration(45, 55)) ||
+         (!this->ros_publish_times_.checkTimestampsTillNow(-1, 55)))) {
         this->time_check_no_error_ = false;
         ROS_ERROR_STREAM("ERROR in ROS Publish!");
         errorLog(communication_process_error_type::ros_publish_time_error);
@@ -658,36 +590,11 @@ void CommunicationProcess::rosPublishCheck() {
 }
 
 void CommunicationProcess::udpReceiveCheck() {
-    this->last_udp_receive_interval_ = this->last_udp_receive_time_[1] - this->last_udp_receive_time_[0];
-    this->last_udp_receive_till_now_ = this->tmp_ros_time_now_ - this->last_udp_receive_time_[1];
-
-    this->last_udp_receive_correct_interval_ = this->last_udp_receive_correct_time_[1] - this->last_udp_receive_correct_time_[0];
-    this->last_udp_receive_correct_till_now_ = this->tmp_ros_time_now_ - this->last_udp_receive_correct_time_[1];
-    this->last_udp_recv_1_correct_interval_ = this->last_udp_recv_1_correct_time_[1] - this->last_udp_recv_1_correct_time_[0];
-    this->last_udp_recv_1_correct_till_now_ = this->tmp_ros_time_now_ - this->last_udp_recv_1_correct_time_[1];
-    this->last_udp_recv_2_correct_interval_ = this->last_udp_recv_2_correct_time_[1] - this->last_udp_recv_2_correct_time_[0];
-    this->last_udp_recv_2_correct_till_now_ = this->tmp_ros_time_now_ - this->last_udp_recv_2_correct_time_[1];
-    this->last_udp_recv_3_correct_interval_ = this->last_udp_recv_3_correct_time_[1] - this->last_udp_recv_3_correct_time_[0];
-    this->last_udp_recv_3_correct_till_now_ = this->tmp_ros_time_now_ - this->last_udp_recv_3_correct_time_[1];
-    this->last_udp_recv_4_correct_interval_ = this->last_udp_recv_4_correct_time_[1] - this->last_udp_recv_4_correct_time_[0];
-    this->last_udp_recv_4_correct_till_now_ = this->tmp_ros_time_now_ - this->last_udp_recv_4_correct_time_[1];
-
     if (//(this->udp_receive_switch_) &&
-            ((this->last_udp_receive_interval_ < 8) ||
-             (this->last_udp_receive_correct_interval_ > 25) ||
-             (this->last_udp_receive_correct_till_now_ > 25) ||
-             (this->last_udp_recv_1_correct_interval_ < 45) ||
-             (this->last_udp_recv_1_correct_interval_ > 55) ||
-             (this->last_udp_recv_1_correct_till_now_ > 55) ||
-             (this->last_udp_recv_2_correct_interval_ < 45) ||
-             (this->last_udp_recv_2_correct_interval_ > 55) ||
-             (this->last_udp_recv_2_correct_till_now_ > 55) ||
-             (this->last_udp_recv_3_correct_interval_ < 45) ||
-             (this->last_udp_recv_3_correct_interval_ > 55) ||
-             (this->last_udp_recv_3_correct_till_now_ > 55) ||
-             (this->last_udp_recv_4_correct_interval_ < 45) ||
-             (this->last_udp_recv_4_correct_interval_ > 55) ||
-             (this->last_udp_recv_4_correct_till_now_ > 55))) {
+        ((!this->udp_recv_times_.checkTimestampsDuration(5, 25)) ||
+         (!this->udp_recv_times_.checkTimestampsTillNow(-1, 25)) ||
+         (!this->pack_recv_times_.checkTimestampsDuration(45, 55)) ||
+         (!this->pack_recv_times_.checkTimestampsTillNow(-1, 55)))) {
         this->time_check_no_error_ = false;
         this->ros_publish_switch_ = false;
         ROS_ERROR_STREAM("ERROR in UDP Receive!");
