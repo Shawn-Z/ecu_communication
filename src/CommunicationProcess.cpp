@@ -15,6 +15,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
     google::InitGoogleLogging("Three_One_Communication");
     FLAGS_log_dir = getenv("HOME");
+    google::SetStderrLogging(google::FATAL);
     LOG_INFO << "program start";
     LOG_WARN << "program start";
     LOG_ERROR << "program start";
@@ -157,15 +158,16 @@ CommunicationProcess::~CommunicationProcess() {
 }
 
 void CommunicationProcess::dataProcess() {
+    if (!this->ros_publish_switch_) {
+        return;
+    }
     dataUploadCopy();
     if (!msgDistribution()) {
         errorLog(communication_process_error_type::udp_receive_data_illegal);
         return;
     }
-    if (this->ros_publish_switch_) {
-        this->recv_data_publisher_.publish(this->report_);
-        this->ros_publish_times_.pushTimestamp(0);
-    }
+    this->recv_data_publisher_.publish(this->report_);
+    this->ros_publish_times_.pushTimestamp(0);
 }
 
 void CommunicationProcess::dataUploadCopy() {
@@ -409,7 +411,7 @@ void CommunicationProcess::timeCheck() {
     }
 
     if (this->time_check_no_error_) {
-        ROS_INFO_STREAM_THROTTLE(std::max((int)(this->well_work_display_period_ / this->check_period_), 1), "work well");
+        ROS_INFO_STREAM_THROTTLE(this->well_work_display_period_, "work well");
     }
 
     if (this->verbose_log_) {
