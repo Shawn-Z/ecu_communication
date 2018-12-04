@@ -592,6 +592,8 @@ void CommunicationProcess::rosPublishCheck() {
 }
 
 void CommunicationProcess::udpReceiveCheck() {
+//    this->ros_publish_switch_ = true;
+//    return; // todo for debug
     if (//(this->udp_receive_switch_) &&
         ((!this->udp_recv_times_.checkTimestampsDuration(5, 25)) ||
          (!this->udp_recv_times_.checkTimestampsTillNow(-1, 25)) ||

@@ -117,7 +117,7 @@ public:
         }
         if (p_max > 0) {
             for (size_t i = 0; i < this->timestamps_duration_ms.size(); ++i) {
-                if (this->timestamps_duration_ms[i] > p_min) {
+                if (this->timestamps_duration_ms[i] > p_max) {
                     this->error_positions.emplace_back(i);
                 }
             }
@@ -140,7 +140,7 @@ public:
         }
         if (p_max > 0) {
             for (size_t i = 0; i < this->timestamps_till_now_ms.size(); ++i) {
-                if (this->timestamps_till_now_ms[i] > p_min) {
+                if (this->timestamps_till_now_ms[i] > p_max) {
                     this->error_positions.emplace_back(i);
                 }
             }
