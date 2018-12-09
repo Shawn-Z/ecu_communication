@@ -5,13 +5,13 @@
 #include <vector>
 #include <ctime>
 #include <stdint.h>
-#include <shawn/shawn_vector.hpp>
+#include <shawn/ShawnVector.hpp>
 
 namespace shawn {
 
 class ShawnTime {
 public:
-    shawn_vector shawnVector;
+    ShawnVector shawn_vector;
 
     std::vector<size_t> error_positions;
 
@@ -54,7 +54,7 @@ public:
         if (this->last_timestamps.size() < (p_position + 1)) {
             this->last_timestamps.resize(p_position + 1);
         }
-        shawnVector.unifySize(this->last_timestamps, this->last_last_timestamps);
+        shawn_vector.unifySize(this->last_timestamps, this->last_last_timestamps);
         this->last_last_timestamps[p_position] = this->last_timestamps[p_position];
         this->last_timestamps[p_position] = p_time_point;
     }
@@ -88,15 +88,15 @@ public:
     }
 
     void updateTimestampsDuration() {
-//        shawnVector.unifySize(this->last_timestamps, this->last_last_timestamps);
-        shawnVector.unifySize(this->last_timestamps, this->timestamps_duration_ms);
+//        shawn_vector.unifySize(this->last_timestamps, this->last_last_timestamps);
+        shawn_vector.unifySize(this->last_timestamps, this->timestamps_duration_ms);
         for (size_t i = 0; i < this->last_timestamps.size(); ++i) {
             this->timestamps_duration_ms[i] = 1000 * std::chrono::duration_cast<std::chrono::duration<double>>(this->last_timestamps[i] - this->last_last_timestamps[i]).count();
         }
     }
 
     void updateTimestampsTillNow(std::chrono::time_point<std::chrono::steady_clock> p_now = std::chrono::steady_clock::now()) {
-        shawnVector.unifySize(this->last_timestamps, this->timestamps_till_now_ms);
+        shawn_vector.unifySize(this->last_timestamps, this->timestamps_till_now_ms);
         for (size_t i = 0; i < this->last_timestamps.size(); ++i) {
             this->timestamps_till_now_ms[i] = 1000 * std::chrono::duration_cast<std::chrono::duration<double>>(p_now - this->last_timestamps[i]).count();
         }
@@ -152,7 +152,7 @@ public:
 //        if (p_position < 0) {
 //            return false;
 //        }
-//        if (!shawnVector.checkSizeSame(this->last_timestamps, this->last_last_timestamps)) {
+//        if (!shawn_vector.checkSizeSame(this->last_timestamps, this->last_last_timestamps)) {
 //            return false;
 //        }
 //        if (this->last_timestamps.size() < (p_position + 1)) {

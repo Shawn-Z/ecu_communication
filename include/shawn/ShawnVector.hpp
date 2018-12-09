@@ -5,7 +5,7 @@
 
 namespace shawn {
 
-class shawn_vector {
+class ShawnVector {
 public:
     template <typename T1, typename T2>
     void unifySize(std::vector<T1> &p_vector1, std::vector<T2> &p_vector2) {
