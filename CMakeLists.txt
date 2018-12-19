@@ -27,6 +27,7 @@ catkin_package(
 
 include_directories(
     include
+    include/shawn
     ${catkin_INCLUDE_DIRS}
 )
 

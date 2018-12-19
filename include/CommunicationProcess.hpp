@@ -16,7 +16,7 @@
 #include "UDPServer.hpp"
 #include "DataUpload.hpp"
 #include "DataDownload.hpp"
-#include "shawn/ShawnTime.hpp"
+#include "STime.hpp"
 
 namespace ecu_communication {
 
@@ -69,15 +69,15 @@ public:
     //// time check
     //// 0 simple udp recv time
     //// 1 simple udp recv length correct time
-    shawn::ShawnTime udp_recv_times_;
+    shawn::STime udp_recv_times_;
     //// 0 simple udp send time
-    shawn::ShawnTime udp_send_times_;
+    shawn::STime udp_send_times_;
     //// 0 1 2 3 for each pack recv time
-    shawn::ShawnTime pack_recv_times_;
+    shawn::STime pack_recv_times_;
     //// 0 1 for each pack send time
-    shawn::ShawnTime pack_send_times_;
+    shawn::STime pack_send_times_;
     //// 0 simple ros publish time
-    shawn::ShawnTime ros_publish_times_;
+    shawn::STime ros_publish_times_;
 
     //// Functions Switch
     bool upper_layer_send_;
