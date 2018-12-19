@@ -55,7 +55,6 @@ struct yaml_params_type {
     int udp_server_port;
     double_t publish_period;
     double_t check_period;
-    double_t well_work_display_period;
     double_t essential_msg_max_period;
 };
 
@@ -132,7 +131,6 @@ public:
     double_t check_period_;
     double_t publish_period_;
     double_t essential_msg_max_period_;
-    double_t well_work_display_period_;
 
     void paramsInit();
     void reconfigureRequest(ecu_communicationConfig &config, uint32_t level);

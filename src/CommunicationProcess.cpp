@@ -411,7 +411,7 @@ void CommunicationProcess::timeCheck() {
     }
 
     if (this->time_check_no_error_) {
-        ROS_INFO_STREAM_THROTTLE(this->well_work_display_period_, "work well");
+        ROS_INFO_STREAM_THROTTLE(1, "work well");
     }
 
     if (this->verbose_log_) {
@@ -472,7 +472,6 @@ void CommunicationProcess::paramsInit() {
     this->yaml_params_.publish_period = this->private_nh_.param("publish_period", 20) * 0.001;
     this->yaml_params_.check_period = this->private_nh_.param("check_period", 200) * 0.001;
     this->yaml_params_.essential_msg_max_period = this->private_nh_.param("essential_msg_max_period", 100) * 0.001;
-    this->yaml_params_.well_work_display_period = this->private_nh_.param("well_work_display_period", 1000) * 0.001;
 
     //// todo params check
     //// todo log params
@@ -490,7 +489,6 @@ void CommunicationProcess::paramsInit() {
     this->publish_period_ = this->yaml_params_.publish_period;
     this->check_period_ = this->yaml_params_.check_period;
     this->essential_msg_max_period_ = this->yaml_params_.essential_msg_max_period;
-    this->well_work_display_period_ = this->yaml_params_.well_work_display_period;
 
     //// check_period > essential_msg_max_period
     if (this->check_period_ < (2.0 * this->essential_msg_max_period_ + 0.01)) {
@@ -570,11 +568,13 @@ void CommunicationProcess::logMarkers() {
 }
 
 void CommunicationProcess::udpSendCheck() {
+    bool udp_send_duration_check = this->udp_send_times_.checkTimestampsDuration(20, 30);
+    bool udp_send_till_now_check = this->udp_send_times_.checkTimestampsTillNow(-1, 30);
+    bool pack_send_duration_check = this->pack_send_times_.checkTimestampsDuration(45, 55);
+    bool pack_send_till_now_check = this->pack_send_times_.checkTimestampsTillNow(-1, 55);
     if ((this->udp_send_switch_) &&
-        ((!this->udp_send_times_.checkTimestampsDuration(20, 30)) ||
-         (!this->udp_send_times_.checkTimestampsTillNow(-1, 30)) ||
-         (!this->pack_send_times_.checkTimestampsDuration(45, 55)) ||
-         (!this->pack_send_times_.checkTimestampsTillNow(-1, 55)))) {
+        ((!udp_send_duration_check) || (!udp_send_till_now_check) ||
+         (!pack_send_duration_check) || (!pack_send_till_now_check))) {
         this->time_check_no_error_ = false;
         ROS_ERROR_STREAM("ERROR in UDP Send!");
         errorLog(communication_process_error_type::udp_send_time_error);
@@ -582,9 +582,10 @@ void CommunicationProcess::udpSendCheck() {
 }
 
 void CommunicationProcess::rosPublishCheck() {
+    bool ros_pub_duration_check = this->ros_publish_times_.checkTimestampsDuration(45, 55);
+    bool ros_pub_till_now_check = this->ros_publish_times_.checkTimestampsTillNow(-1, 55);
     if ((this->ros_publish_switch_) &&
-        ((!this->ros_publish_times_.checkTimestampsDuration(45, 55)) ||
-         (!this->ros_publish_times_.checkTimestampsTillNow(-1, 55)))) {
+        ((!ros_pub_duration_check) || (!ros_pub_till_now_check))) {
         this->time_check_no_error_ = false;
         ROS_ERROR_STREAM("ERROR in ROS Publish!");
         errorLog(communication_process_error_type::ros_publish_time_error);
@@ -594,11 +595,13 @@ void CommunicationProcess::rosPublishCheck() {
 void CommunicationProcess::udpReceiveCheck() {
 //    this->ros_publish_switch_ = true;
 //    return; // todo for debug
+    bool udp_recv_duration_check = this->udp_recv_times_.checkTimestampsDuration(5, 25);
+    bool udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, 25);
+    bool pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(45, 55);
+    bool pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, 55);
     if (//(this->udp_receive_switch_) &&
-        ((!this->udp_recv_times_.checkTimestampsDuration(5, 25)) ||
-         (!this->udp_recv_times_.checkTimestampsTillNow(-1, 25)) ||
-         (!this->pack_recv_times_.checkTimestampsDuration(45, 55)) ||
-         (!this->pack_recv_times_.checkTimestampsTillNow(-1, 55)))) {
+        ((!udp_recv_duration_check) || (!udp_recv_till_now_check) ||
+         (!pack_recv_duration_check) || (!pack_recv_till_now_check))) {
         this->time_check_no_error_ = false;
         this->ros_publish_switch_ = false;
         ROS_ERROR_STREAM("ERROR in UDP Receive!");

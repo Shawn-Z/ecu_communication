@@ -1,5 +1,5 @@
-upper_layer_send: true
-upper_layer_receive: true
+upper_layer_send: false
+upper_layer_receive: false
 lower_layer_send: true
 lower_layer_receive: true
 
@@ -7,11 +7,10 @@ reconfig: false
 send_default_when_no_msg: false
 verbose_log: true
 
-ecu_ip: "192.168.1.222"
-ecu_port: 8080
-udp_server_port: 8081
+ecu_ip: "172.16.16.168"
+ecu_port: 8181
+udp_server_port: 8181
 
 publish_period: 50 #ms
 essential_msg_max_period: 100 #ms
 check_period: 250 #ms
-well_work_display_period: 1000 #ms

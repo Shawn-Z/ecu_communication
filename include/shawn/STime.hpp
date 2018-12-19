@@ -6,7 +6,6 @@
 #include <ctime>
 #include <stdint.h>
 #include <SVector.hpp>
-#include <iostream>
 
 namespace shawn {
 
@@ -97,7 +96,6 @@ public:
     }
 
     void updateTimestampsTillNow(std::chrono::time_point<std::chrono::steady_clock> p_now = std::chrono::steady_clock::now()) {
-        std::cout<<p_now.time_since_epoch().count()<<std::endl;
         shawn_vector.unifySize(this->last_timestamps, this->timestamps_till_now_ms);
         for (size_t i = 0; i < this->last_timestamps.size(); ++i) {
             this->timestamps_till_now_ms[i] = 1000 * std::chrono::duration_cast<std::chrono::duration<double>>(p_now - this->last_timestamps[i]).count();
