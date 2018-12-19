@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cmath>
 #include <stdint-gcc.h>
+#include "ThreeOne.hpp"
 
 namespace ecu_communication {
 
@@ -65,7 +66,8 @@ union data_download_pack_two_type {
         };
         union {
             struct {
-                uint8_t reserve_bits2: 6;
+                uint8_t reserve_bits2: 5;
+                uint8_t fix_two_chamber_valve: 1;
                 uint8_t tailgate_control: 2;
             };
             uint8_t functions_five;
@@ -81,6 +83,7 @@ public:
     data_download_pack_two_type data_download_pack_two;
     DataDownload();
     void init();
+    void modify_data_for_test();
 };
 
 }

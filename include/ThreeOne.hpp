@@ -133,6 +133,11 @@ enum class tailgate_control {
     keep = 3
 };
 
+enum class fix_two_chamber_valve {
+    not_fixed = 0,
+    fixed = 1
+};
+
 }
 
 namespace three_one_feedback {

@@ -107,6 +107,7 @@ void CommunicationProcess::udpSend() {
         if (this->params_.fake_issue) {
             fake_issue();
         }
+//        this->data_download_copied_.modify_data_for_test(); //// enable this for test
         if (this->udp_client_.process(this->data_download_copied_.data_download_pack_one.result_data,
                                       sizeof(this->data_download_copied_.data_download_pack_one.result_data))) {
             this->udp_send_times_.pushTimestamp(0);
@@ -124,6 +125,7 @@ void CommunicationProcess::udpSend() {
         if (this->params_.fake_issue) {
             fake_issue();
         }
+//        this->data_download_copied_.modify_data_for_test(); //// enable this for test
         if (this->udp_client_.process(this->data_download_copied_.data_download_pack_two.result_data,
                                       sizeof(this->data_download_copied_.data_download_pack_two.result_data))) {
             this->udp_send_times_.pushTimestamp(0);
@@ -595,10 +597,10 @@ void CommunicationProcess::rosPublishCheck() {
 void CommunicationProcess::udpReceiveCheck() {
 //    this->ros_publish_switch_ = true;
 //    return; // todo for debug
-    bool udp_recv_duration_check = this->udp_recv_times_.checkTimestampsDuration(5, 25);
-    bool udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, 25);
-    bool pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(45, 55);
-    bool pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, 55);
+    bool udp_recv_duration_check = this->udp_recv_times_.checkTimestampsDuration(5, 35);
+    bool udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, 35);
+    bool pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(60, 90);
+    bool pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, 90);
     if (//(this->udp_receive_switch_) &&
         ((!udp_recv_duration_check) || (!udp_recv_till_now_check) ||
          (!pack_recv_duration_check) || (!pack_recv_till_now_check))) {

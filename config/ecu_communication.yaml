@@ -3,7 +3,7 @@ upper_layer_receive: false
 lower_layer_send: true
 lower_layer_receive: true
 
-reconfig: false
+reconfig: true
 send_default_when_no_msg: false
 verbose_log: true
 
