@@ -11,6 +11,8 @@
 #include "ecu_communication/ecu_communicationParameters.h"
 #include "three_one_msgs/control.h"
 #include "three_one_msgs/report.h"
+#include "three_one_msgs/recv_rawdata.h"
+#include "three_one_msgs/send_rawdata.h"
 #include "ThreeOne.hpp"
 #include "UDPClient.hpp"
 #include "UDPServer.hpp"
@@ -78,21 +80,19 @@ public:
     //// 0 simple ros publish time
     shawn::STime ros_publish_times_;
 
-    //// Functions Switch
-    bool upper_layer_send_;
-    bool upper_layer_receive_;
-    bool lower_layer_send_;
-    bool lower_layer_receive_;
-
     //// ROS Variables
     ros::NodeHandle nh_;
     ros::NodeHandle private_nh_;
     ros::Timer data_process_timer_;
     ros::Timer time_check_timer_;
     ros::Publisher recv_data_publisher_;
+    ros::Publisher udp_recv_rawdata_publisher_;
+    ros::Publisher udp_send_rawdata_publisher_;
 
     //// ROS msgs
     three_one_msgs::report report_;
+    three_one_msgs::recv_rawdata recv_rawdata_;
+    three_one_msgs::send_rawdata send_rawdata_;
 
     //// rosparam handler
     ecu_communicationParameters params_;
@@ -104,17 +104,11 @@ public:
     bool udp_receive_switch_;
     bool udp_send_switch_;
     bool ros_publish_switch_;
-    bool send_default_when_no_msg_;
-    bool reconfig_;
-    bool verbose_log_;
     bool time_check_no_error_;
 
     //// UDP communication
     UDPServer udp_server_;
     UDPClient udp_client_;
-    uint16_t udp_server_port_;
-    std::string ecu_ip_;
-    uint16_t ecu_port_;
     std::thread udp_receive_thread;
     std::thread udp_send_thread;
 
@@ -126,11 +120,6 @@ public:
     std::mutex data_upload_mutex_;
     std::mutex data_download_pack_one_mutex_;
     std::mutex data_download_pack_two_mutex_;
-
-    //// periods
-    double_t check_period_;
-    double_t publish_period_;
-    double_t essential_msg_max_period_;
 
     void paramsInit();
     void reconfigureRequest(ecu_communicationConfig &config, uint32_t level);

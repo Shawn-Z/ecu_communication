@@ -25,39 +25,42 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
     paramsInit();
 
-    if (this->reconfig_) {
+    if (this->yaml_params_.reconfig) {
         this->reconfigSrv_.setCallback(boost::bind(&CommunicationProcess::reconfigureRequest, this, _1, _2));
     }
 
-    if (this->lower_layer_receive_) {
+    if (this->yaml_params_.lower_layer_receive) {
+        this->udp_recv_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::recv_rawdata>("/udp_recv_rawdata", 1);
+
         //// udp receive
         this->udp_receive_thread = std::thread(&CommunicationProcess::udpReceive, this);
         this->udp_receive_thread.detach();
     }
 
-    if (this->lower_layer_send_) {
+    if (this->yaml_params_.lower_layer_send) {
+        this->udp_send_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::send_rawdata>("/udp_send_rawdata", 1);
         //// udp send
         this->udp_send_thread = std::thread(&CommunicationProcess::udpSend, this);
         this->udp_send_thread.detach();
     }
 
-    if (this->upper_layer_send_) {
+    if (this->yaml_params_.upper_layer_send) {
         //// add publisher here
         this->recv_data_publisher_ = this->nh_.advertise<three_one_msgs::report>("/ecudatareport", 1);
         //// timer for process and publish
-        this->data_process_timer_ = this->nh_.createTimer(ros::Duration(this->publish_period_),
+        this->data_process_timer_ = this->nh_.createTimer(ros::Duration(this->yaml_params_.publish_period),
                                                           boost::bind(&CommunicationProcess::dataProcess, this));
     }
 
-    if (this->upper_layer_receive_) {
+    if (this->yaml_params_.upper_layer_receive) {
         //// add subscriber here
     }
 
     this->udp_receive_switch_ = true;
 
     //// start time check after a little while
-    ros::Duration(this->check_period_).sleep();
-    this->time_check_timer_ = this->nh_.createTimer(ros::Duration(this->check_period_),
+    ros::Duration(this->yaml_params_.check_period).sleep();
+    this->time_check_timer_ = this->nh_.createTimer(ros::Duration(this->yaml_params_.check_period),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
 
     logMarkers();
@@ -65,7 +68,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
 
 void CommunicationProcess::udpReceive() {
-    while (!(this->udp_server_.init(this->udp_server_port_))) {
+    while (!(this->udp_server_.init(this->yaml_params_.udp_server_port))) {
         ROS_ERROR_STREAM("UDP RECEIVE INIT FAILURE, KEEP TRYING!");
     }
     while (ros::ok()) {
@@ -89,23 +92,25 @@ void CommunicationProcess::udpReceive() {
         }
         {
             auto&& log = COMPACT_GOOGLE_LOG_INFO;
-            std::vector<uint8_t> tmp_data(this->udp_server_.buffer, this->udp_server_.buffer + this->udp_server_.get_recv_len());
+            this->recv_rawdata_.recv_rawdata.clear();
+            this->recv_rawdata_.recv_rawdata.assign(&this->udp_server_.buffer[0], &this->udp_server_.buffer[this->udp_server_.get_recv_len()]);
             log.stream() << std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" udp recv: 0x";
-            for(int cell: tmp_data) {
+            for(int cell: this->recv_rawdata_.recv_rawdata) {
                 log.stream() << " " << std::setfill('0') << std::setw(2) << std::hex << cell;
             }
+            this->udp_recv_rawdata_publisher_.publish(this->recv_rawdata_);
         }
         //// todo log raw data
     }
 }
 
 void CommunicationProcess::udpSend() {
-    while (!(this->udp_client_.init(this->ecu_ip_.data(), this->ecu_port_))) {
+    while (!(this->udp_client_.init(this->yaml_params_.ecu_ip.data(), this->yaml_params_.ecu_port))) {
         ROS_ERROR_STREAM("UDP SEND INIT FAILURE, KEEP TRYING!");
     }
     ros::Rate loop_rate(20);
     while (ros::ok()) {
-        if (!(this->udp_send_switch_ || this->send_default_when_no_msg_ || this->params_.fake_issue)) {
+        if (!(this->udp_send_switch_ || this->yaml_params_.send_default_when_no_msg || this->params_.fake_issue)) {
             continue;
         }
 
@@ -122,14 +127,15 @@ void CommunicationProcess::udpSend() {
             this->udp_send_times_.pushTimestamp(0);
             this->pack_send_times_.pushTimestamp(0);
             {
+                this->send_rawdata_.send_rawdata.clear();
+                this->send_rawdata_.send_rawdata.assign(&this->data_download_copied_.data_download_pack_one.result_data[0],
+                        &this->data_download_copied_.data_download_pack_one.result_data[sizeof(this->data_download_copied_.data_download_pack_one.result_data)]);
                 auto&& log = COMPACT_GOOGLE_LOG_INFO;
-                std::vector<uint8_t> tmp_data(this->data_download_copied_.data_download_pack_one.result_data,
-                                              this->data_download_copied_.data_download_pack_one.result_data +
-                                              sizeof(this->data_download_copied_.data_download_pack_one.result_data));
                 log.stream() << std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" udp send: 0x";
-                for(int cell: tmp_data) {
+                for(int cell: this->send_rawdata_.send_rawdata) {
                     log.stream() << " " << std::setfill('0') << std::setw(2) << std::hex << cell;
                 }
+                this->udp_send_rawdata_publisher_.publish(this->send_rawdata_);
             }
         } else {
             errorLog(communication_process_error_type::udp_send_pack_one_len_error);
@@ -150,14 +156,15 @@ void CommunicationProcess::udpSend() {
             this->udp_send_times_.pushTimestamp(0);
             this->pack_send_times_.pushTimestamp(1);
             {
+                this->send_rawdata_.send_rawdata.clear();
+                this->send_rawdata_.send_rawdata.assign(&this->data_download_copied_.data_download_pack_two.result_data[0],
+                                                        &this->data_download_copied_.data_download_pack_two.result_data[sizeof(this->data_download_copied_.data_download_pack_two.result_data)]);
                 auto&& log = COMPACT_GOOGLE_LOG_INFO;
-                std::vector<uint8_t> tmp_data(this->data_download_copied_.data_download_pack_two.result_data,
-                                              this->data_download_copied_.data_download_pack_two.result_data +
-                                              sizeof(this->data_download_copied_.data_download_pack_two.result_data));
                 log.stream() << std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" udp send: 0x";
-                for(int cell: tmp_data) {
+                for(int cell: this->send_rawdata_.send_rawdata) {
                     log.stream() << " " << std::setfill('0') << std::setw(2) << std::hex << cell;
                 }
+                this->udp_send_rawdata_publisher_.publish(this->send_rawdata_);
             }
         } else {
             errorLog(communication_process_error_type::udp_send_pack_two_len_error);
@@ -174,13 +181,15 @@ CommunicationProcess::~CommunicationProcess() {
     this->udp_send_switch_ = false;
     this->udp_receive_switch_ = false;
     this->ros_publish_switch_ = false;
-    this->reconfig_ = false;
+    this->yaml_params_.reconfig = false;
     this->params_.fake_issue = false;
     ros::Duration(0.3).sleep();
-    this->send_default_when_no_msg_ = false;
+    this->yaml_params_.send_default_when_no_msg = false;
 
     //// todo shutdown publisher and subscriber
     this->recv_data_publisher_.shutdown();
+    this->udp_recv_rawdata_publisher_.shutdown();
+    this->udp_send_rawdata_publisher_.shutdown();
 
     LOG_INFO << "program end";
     LOG_WARN << "program end";
@@ -431,16 +440,16 @@ void CommunicationProcess::errorLog(communication_process_error_type p_error) {
 void CommunicationProcess::timeCheck() {
     this->time_check_no_error_ = true;
 
-    if (this->lower_layer_send_) {
+    if (this->yaml_params_.lower_layer_send) {
         udpSendCheck();
     }
-    if (this->upper_layer_send_) {
+    if (this->yaml_params_.upper_layer_send) {
         rosPublishCheck();
     }
-    if (lower_layer_receive_) {
+    if (yaml_params_.lower_layer_receive) {
         udpReceiveCheck();
     }
-    if (upper_layer_receive_) {
+    if (yaml_params_.upper_layer_receive) {
         rosmsgUpdateCheck();
     }
 
@@ -448,7 +457,7 @@ void CommunicationProcess::timeCheck() {
         ROS_INFO_STREAM_THROTTLE(1, "work well");
     }
 
-    if (this->verbose_log_) {
+    if (this->yaml_params_.verbose_log) {
         logVerboseInfo();
     }
 }
@@ -510,29 +519,15 @@ void CommunicationProcess::paramsInit() {
     //// todo params check
     //// todo log params
 
-    this->upper_layer_send_ = this->yaml_params_.upper_layer_send;
-    this->upper_layer_receive_ = this->yaml_params_.upper_layer_receive;
-    this->lower_layer_send_ = this->yaml_params_.lower_layer_send;
-    this->lower_layer_receive_ = this->yaml_params_.lower_layer_receive;
-    this->verbose_log_ = this->yaml_params_.verbose_log;
-    this->reconfig_ = this->yaml_params_.reconfig;
-    this->send_default_when_no_msg_ = this->yaml_params_.send_default_when_no_msg;
-    this->ecu_ip_ = this->yaml_params_.ecu_ip;
-    this->ecu_port_ = (uint16_t)this->yaml_params_.ecu_port;
-    this->udp_server_port_ = (uint16_t)this->yaml_params_.udp_server_port;
-    this->publish_period_ = this->yaml_params_.publish_period;
-    this->check_period_ = this->yaml_params_.check_period;
-    this->essential_msg_max_period_ = this->yaml_params_.essential_msg_max_period;
-
     //// check_period > essential_msg_max_period
-    if (this->check_period_ < (2.0 * this->essential_msg_max_period_ + 0.01)) {
-        this->check_period_ = (2.0 * this->essential_msg_max_period_ + 0.01);
+    if (this->yaml_params_.check_period < (2.0 * this->yaml_params_.essential_msg_max_period + 0.01)) {
+        this->yaml_params_.check_period = (2.0 * this->yaml_params_.essential_msg_max_period + 0.01);
     }
-    if (this->check_period_ < (2.0 * this->publish_period_ + 0.01)) {
-        this->check_period_ = (2.0 * this->publish_period_ + 0.01);
+    if (this->yaml_params_.check_period < (2.0 * this->yaml_params_.publish_period + 0.01)) {
+        this->yaml_params_.check_period = (2.0 * this->yaml_params_.publish_period + 0.01);
     }
-    if (this->check_period_ < 0.11) {
-        this->check_period_ = 0.11;
+    if (this->yaml_params_.check_period < 0.11) {
+        this->yaml_params_.check_period = 0.11;
     }
 
     this->udp_send_switch_ = false;
