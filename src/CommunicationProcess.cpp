@@ -87,6 +87,15 @@ void CommunicationProcess::udpReceive() {
         } else {
             errorLog(communication_process_error_type::udp_recv_len_error);
         }
+        {
+            auto&& log = COMPACT_GOOGLE_LOG_INFO;
+            std::vector<uint8_t> tmp_data(this->udp_server_.buffer, this->udp_server_.buffer + this->udp_server_.get_recv_len());
+            log.stream() << std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" udp recv: 0x";
+            for(int cell: tmp_data) {
+                log.stream() << " " << std::setfill('0') << std::setw(2) << std::hex << cell;
+            }
+        }
+        //// todo log raw data
     }
 }
 
@@ -112,6 +121,16 @@ void CommunicationProcess::udpSend() {
                                       sizeof(this->data_download_copied_.data_download_pack_one.result_data))) {
             this->udp_send_times_.pushTimestamp(0);
             this->pack_send_times_.pushTimestamp(0);
+            {
+                auto&& log = COMPACT_GOOGLE_LOG_INFO;
+                std::vector<uint8_t> tmp_data(this->data_download_copied_.data_download_pack_one.result_data,
+                                              this->data_download_copied_.data_download_pack_one.result_data +
+                                              sizeof(this->data_download_copied_.data_download_pack_one.result_data));
+                log.stream() << std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" udp send: 0x";
+                for(int cell: tmp_data) {
+                    log.stream() << " " << std::setfill('0') << std::setw(2) << std::hex << cell;
+                }
+            }
         } else {
             errorLog(communication_process_error_type::udp_send_pack_one_len_error);
         }
@@ -130,6 +149,16 @@ void CommunicationProcess::udpSend() {
                                       sizeof(this->data_download_copied_.data_download_pack_two.result_data))) {
             this->udp_send_times_.pushTimestamp(0);
             this->pack_send_times_.pushTimestamp(1);
+            {
+                auto&& log = COMPACT_GOOGLE_LOG_INFO;
+                std::vector<uint8_t> tmp_data(this->data_download_copied_.data_download_pack_two.result_data,
+                                              this->data_download_copied_.data_download_pack_two.result_data +
+                                              sizeof(this->data_download_copied_.data_download_pack_two.result_data));
+                log.stream() << std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" udp send: 0x";
+                for(int cell: tmp_data) {
+                    log.stream() << " " << std::setfill('0') << std::setw(2) << std::hex << cell;
+                }
+            }
         } else {
             errorLog(communication_process_error_type::udp_send_pack_two_len_error);
         }
@@ -174,6 +203,7 @@ void CommunicationProcess::dataProcess() {
 
 void CommunicationProcess::dataUploadCopy() {
     this->data_upload_mutex_.lock();
+    this->data_upload_copied_.recv_counter = this->data_upload_.recv_counter;
     this->data_upload_copied_.data_upload_pack_one = this->data_upload_.data_upload_pack_one;
     this->data_upload_copied_.data_upload_pack_two = this->data_upload_.data_upload_pack_two;
     this->data_upload_copied_.data_upload_pack_three = this->data_upload_.data_upload_pack_three;
@@ -202,6 +232,8 @@ void CommunicationProcess::dataDownloadCopy(uint8_t pack_num) {
 }
 
 bool CommunicationProcess::msgDistribution() {
+    this->report_.counter = this->data_upload_copied_.recv_counter;
+
     if (this->data_upload_copied_.data_upload_pack_one.left_wheel_expect_speed > 25000) {
         return false;
     }

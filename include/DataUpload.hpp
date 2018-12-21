@@ -86,6 +86,7 @@ public:
 
     uint8_t recv_raw_data[14];
     ID_calculate_type ID_calculate;
+    uint64_t recv_counter;
 
     DataUpload();
     void dataDistribution();

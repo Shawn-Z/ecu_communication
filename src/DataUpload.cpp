@@ -3,6 +3,7 @@
 namespace ecu_communication {
 
 void DataUpload::dataDistribution() {
+    ++this->recv_counter;
     switch (this->data_pack_num) {
         case 1: {
             memcpy(this->data_upload_pack_one.pack, this->recv_raw_data, sizeof(this->recv_raw_data));
@@ -21,6 +22,7 @@ void DataUpload::dataDistribution() {
             break;
         }
         default: {
+            --this->recv_counter;
             break;
         }
     }
@@ -35,6 +37,8 @@ DataUpload::DataUpload() {
     memset(this->recv_raw_data, 0, sizeof(this->recv_raw_data));
 
     this->ID_calculate.result = 0;
+
+    this->recv_counter = 0;
 }
 
 int DataUpload::dataPackCheck(char *p_recv_raw_data) {
