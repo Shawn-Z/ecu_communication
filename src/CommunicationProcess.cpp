@@ -652,4 +652,143 @@ void CommunicationProcess::rosmsgUpdateCheck() {
     setROSmsgUpdateFalse();
 }
 
+bool CommunicationProcess::dataUploadCheck() {
+    if (this->data_upload_copied_.data_upload_pack_one.left_wheel_expect_speed > 25000) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_one.right_wheel_expect_speed > 25000) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_one.mechanical_brake > 1000) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_one.vehicle_speed > 250) {
+        return false;
+    }
+    if ((this->data_upload_copied_.data_upload_pack_one.gear < 1) || (this->data_upload_copied_.data_upload_pack_one.gear > 3)) {
+        return false;
+    }
+
+    if (this->data_upload_copied_.data_upload_pack_two.left_motor_actual_speed > 10000) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_two.right_motor_actual_speed > 10000) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_two.left_motor_gear > 1) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_two.right_motor_gear > 1) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_two.SOC > 100) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_two.tailgate_state > 2) {
+        return false;
+    }
+
+    if (this->data_upload_copied_.data_upload_pack_three.left_one_cylinder_position > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_three.left_two_cylinder_position > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_three.left_three_cylinder_position > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_three.left_four_cylinder_position > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_three.right_one_cylinder_position > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_three.right_two_cylinder_position > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_three.right_three_cylinder_position > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_three.right_four_cylinder_position > 250) {
+        return false;
+    }
+
+    if (this->data_upload_copied_.data_upload_pack_four.left_one_cylinder_pressure > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_four.left_two_cylinder_pressure > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_four.left_three_cylinder_pressure > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_four.left_four_cylinder_pressure > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_four.right_one_cylinder_pressure > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_four.right_two_cylinder_pressure > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_four.right_three_cylinder_pressure > 250) {
+        return false;
+    }
+    if (this->data_upload_copied_.data_upload_pack_four.right_four_cylinder_pressure > 250) {
+        return false;
+    }
+    return true;
+}
+
+void CommunicationProcess::dataUploadDistribution() {
+    this->report_.counter = this->data_upload_copied_.recv_counter;
+
+    this->report_.give_back.left_wheel_expect_speed = this->data_upload_copied_.data_upload_pack_one.left_wheel_expect_speed * 0.001;
+    this->report_.give_back.right_wheel_expect_speed = this->data_upload_copied_.data_upload_pack_one.right_wheel_expect_speed * 0.001;
+    this->report_.vehicle_state.mechanical_brake = this->data_upload_copied_.data_upload_pack_one.mechanical_brake * 0.1;
+    this->report_.vehicle_state.vehicle_speed = this->data_upload_copied_.data_upload_pack_one.vehicle_speed * 0.1;
+    this->report_.vehicle_state.current_gear = this->data_upload_copied_.data_upload_pack_one.gear;
+
+    this->report_.vehicle_state.left_motor_rpm = this->data_upload_copied_.data_upload_pack_two.left_motor_actual_speed;
+    this->report_.vehicle_state.right_motor_rpm = this->data_upload_copied_.data_upload_pack_two.right_motor_actual_speed;
+    this->report_.vehicle_state.left_wheel_rotate = this->data_upload_copied_.data_upload_pack_two.left_motor_gear;
+    this->report_.vehicle_state.right_wheel_rotate = this->data_upload_copied_.data_upload_pack_two.right_motor_gear;
+    this->report_.vehicle_state.SOC = this->data_upload_copied_.data_upload_pack_two.SOC;
+    this->report_.vehicle_state.tailgate_state = this->data_upload_copied_.data_upload_pack_two.tailgate_state;
+
+    this->report_.cylinder_position.left_one_cylinder_position =
+            this->data_upload_copied_.data_upload_pack_three.left_one_cylinder_position * 2;
+    this->report_.cylinder_position.left_two_cylinder_position =
+            this->data_upload_copied_.data_upload_pack_three.left_two_cylinder_position * 2;
+    this->report_.cylinder_position.left_three_cylinder_position =
+            this->data_upload_copied_.data_upload_pack_three.left_three_cylinder_position * 2;
+    this->report_.cylinder_position.left_four_cylinder_position =
+            this->data_upload_copied_.data_upload_pack_three.left_four_cylinder_position * 2;
+    this->report_.cylinder_position.right_one_cylinder_position =
+            this->data_upload_copied_.data_upload_pack_three.right_one_cylinder_position * 2;
+    this->report_.cylinder_position.right_two_cylinder_position =
+            this->data_upload_copied_.data_upload_pack_three.right_two_cylinder_position * 2;
+    this->report_.cylinder_position.right_three_cylinder_position =
+            this->data_upload_copied_.data_upload_pack_three.right_three_cylinder_position * 2;
+    this->report_.cylinder_position.right_four_cylinder_position =
+            this->data_upload_copied_.data_upload_pack_three.right_four_cylinder_position * 2;
+
+    this->report_.cylinder_pressure.left_one_cylinder_pressure =
+            this->data_upload_copied_.data_upload_pack_four.left_one_cylinder_pressure;
+    this->report_.cylinder_pressure.left_two_cylinder_pressure =
+            this->data_upload_copied_.data_upload_pack_four.left_two_cylinder_pressure;
+    this->report_.cylinder_pressure.left_three_cylinder_pressure =
+            this->data_upload_copied_.data_upload_pack_four.left_three_cylinder_pressure;
+    this->report_.cylinder_pressure.left_four_cylinder_pressure =
+            this->data_upload_copied_.data_upload_pack_four.left_four_cylinder_pressure;
+    this->report_.cylinder_pressure.right_one_cylinder_pressure =
+            this->data_upload_copied_.data_upload_pack_four.right_one_cylinder_pressure;
+    this->report_.cylinder_pressure.right_two_cylinder_pressure =
+            this->data_upload_copied_.data_upload_pack_four.right_two_cylinder_pressure;
+    this->report_.cylinder_pressure.right_three_cylinder_pressure =
+            this->data_upload_copied_.data_upload_pack_four.right_three_cylinder_pressure;
+    this->report_.cylinder_pressure.right_four_cylinder_pressure =
+            this->data_upload_copied_.data_upload_pack_four.right_four_cylinder_pressure;
+}
+
 }

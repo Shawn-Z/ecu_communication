@@ -128,6 +128,10 @@ public:
     void dataProcess();
     void dataUploadCopy();
     bool msgDistribution();
+
+    bool dataUploadCheck();
+    void dataUploadDistribution();
+
     void dataDownloadCopy(uint8_t pack_num);
     void fake_issue();
     void timeCheck();
