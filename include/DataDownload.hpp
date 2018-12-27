@@ -4,7 +4,9 @@
 #include <cstring>
 #include <cmath>
 #include <stdint-gcc.h>
+#include "three_one_msgs/send_rawdata.h"
 #include "ThreeOne.hpp"
+#include "SHandle.hpp"
 
 namespace ecu_communication {
 
@@ -79,10 +81,14 @@ union data_download_pack_two_type {
 
 class DataDownload {
 public:
-    data_download_pack_one_type data_download_pack_one;
-    data_download_pack_two_type data_download_pack_two;
+    data_download_pack_one_type pack_one;
+    data_download_pack_two_type pack_two;
+    uint8_t data_to_send[14];
+    three_one_msgs::send_rawdata send_rawdata;
+
     DataDownload();
     void init();
+    void prepareSend(shawn::handle p_handle);
     void modify_data_for_test();
 };
 

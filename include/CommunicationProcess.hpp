@@ -19,45 +19,29 @@
 #include "DataUpload.hpp"
 #include "DataDownload.hpp"
 #include "STime.hpp"
+#include "SLog.hpp"
+#include "SProportion.hpp"
 
 namespace ecu_communication {
-
-enum class communication_process_error_type {
-    udp_recv_len_error = 1,
-    udp_recv_ID_error = 2,
-    udp_send_pack_one_len_error = 3,
-    udp_send_pack_two_len_error = 4,
-    udp_receive_time_error = 5,
-    udp_send_time_error = 6,
-    udp_receive_data_illegal = 7,
-    ros_publish_time_error = 8,
-    ros_msg_receive_time_over = 9
-};
-
-struct ros_msg_update_type {
-    union msg_update_type {
-        struct {
-             uint8_t path_plan: 1;
-        };
-        uint8_t result;
-    } essential;
-    uint8_t essential_yes;
-};
 
 struct yaml_params_type {
     bool upper_layer_send;
     bool upper_layer_receive;
     bool lower_layer_send;
     bool lower_layer_receive;
-    bool send_default_when_no_msg;
-    bool reconfig;
-    bool verbose_log;
+
     std::string ecu_ip;
     int ecu_port;
     int udp_server_port;
+
     double_t publish_period;
     double_t check_period;
-    double_t essential_msg_max_period;
+    double_t udp_send_rate;
+
+    bool reconfig;
+    bool send_default_when_no_msg;
+    bool log_rawdata;
+    bool publish_rawdata;
 };
 
 
@@ -67,18 +51,23 @@ public:
     ~CommunicationProcess();
 
 public:
+    shawn::SLog sLog_;
+
     //// time check
-    //// 0 simple udp recv time
-    //// 1 simple udp recv length correct time
     shawn::STime udp_recv_times_;
-    //// 0 simple udp send time
-    shawn::STime udp_send_times_;
-    //// 0 1 2 3 for each pack recv time
+    shawn::handle udp_recv_handle_;
+    shawn::handle udp_recv_correct_handle_;
+
     shawn::STime pack_recv_times_;
-    //// 0 1 for each pack send time
-    shawn::STime pack_send_times_;
-    //// 0 simple ros publish time
-    shawn::STime ros_publish_times_;
+    shawn::handle pack1_recv_handle_;
+    shawn::handle pack2_recv_handle_;
+    shawn::handle pack3_recv_handle_;
+    shawn::handle pack4_recv_handle_;
+    shawn::handle pack5_recv_handle_;
+    shawn::handle pack6_recv_handle_;
+    shawn::handle pack7_recv_handle_;
+
+    shawn::STime msg_update_times;
 
     //// ROS Variables
     ros::NodeHandle nh_;
@@ -89,22 +78,14 @@ public:
     ros::Publisher udp_recv_rawdata_publisher_;
     ros::Publisher udp_send_rawdata_publisher_;
 
-    //// ROS msgs
-    three_one_msgs::report report_;
-    three_one_msgs::recv_rawdata recv_rawdata_;
-    three_one_msgs::send_rawdata send_rawdata_;
-
     //// rosparam handler
     ecu_communicationParameters params_;
     dynamic_reconfigure::Server<ecu_communicationConfig> reconfigSrv_;
     yaml_params_type yaml_params_;
 
     //// markers
-    ros_msg_update_type ros_msg_update_;
-    bool udp_receive_switch_;
     bool udp_send_switch_;
     bool ros_publish_switch_;
-    bool time_check_no_error_;
 
     //// UDP communication
     UDPServer udp_server_;
@@ -114,35 +95,21 @@ public:
 
     //// UDP communication data and variables
     DataUpload data_upload_;
-    DataUpload data_upload_copied_;
     DataDownload data_download_;
-    DataDownload data_download_copied_;
     std::mutex data_upload_mutex_;
-    std::mutex data_download_pack_one_mutex_;
-    std::mutex data_download_pack_two_mutex_;
+    std::mutex data_download_mutex_;
 
     void paramsInit();
     void reconfigureRequest(ecu_communicationConfig &config, uint32_t level);
     void udpReceive();
     void udpSend();
     void dataProcess();
-    void dataUploadCopy();
-    bool msgDistribution();
-
-    bool dataUploadCheck();
-    void dataUploadDistribution();
-
-    void dataDownloadCopy(uint8_t pack_num);
     void fake_issue();
     void timeCheck();
-    void udpReceiveCheck();
-    void udpSendCheck();
-    void rosPublishCheck();
-    void rosmsgUpdateCheck();
-    void errorLog(communication_process_error_type p_error);
-    void logMarkers();
-    void logVerboseInfo();
-    void setROSmsgUpdateFalse();
+    bool udpReceiveCheck();
+    bool rosmsgUpdateCheck();
+    void setTimeCheckHandle();
+    void glogInit();
 };
 
 }

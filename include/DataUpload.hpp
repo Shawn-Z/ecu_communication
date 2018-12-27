@@ -4,6 +4,9 @@
 #include <cmath>
 #include <stdint-gcc.h>
 #include <cstring>
+#include "three_one_msgs/report.h"
+#include "three_one_msgs/recv_rawdata.h"
+#include "SHandle.hpp"
 
 namespace ecu_communication {
 
@@ -21,7 +24,6 @@ union data_upload_pack_one_type {
     uint8_t pack[14];
 };
 
-
 union data_upload_pack_two_type {
     struct {
         uint32_t data_ID;
@@ -36,7 +38,6 @@ union data_upload_pack_two_type {
     };
     uint8_t pack[14];
 };
-
 
 union data_upload_pack_three_type {
     struct {
@@ -79,19 +80,23 @@ union ID_calculate_type {
 
 class DataUpload {
 public:
-    data_upload_pack_one_type data_upload_pack_one;
-    data_upload_pack_two_type data_upload_pack_two;
-    data_upload_pack_three_type data_upload_pack_three;
-    data_upload_pack_four_type data_upload_pack_four;
+    data_upload_pack_one_type pack_one;
+    data_upload_pack_two_type pack_two;
+    data_upload_pack_three_type pack_three;
+    data_upload_pack_four_type pack_four;
 
     uint8_t recv_raw_data[14];
     ID_calculate_type ID_calculate;
     uint64_t recv_counter;
+    shawn::handle pack_handle;
+    three_one_msgs::report report;
+    three_one_msgs::recv_rawdata recv_rawdata;
 
     DataUpload();
     void dataDistribution();
-    int data_pack_num;
-    int dataPackCheck(char * p_recv_raw_data);
+    bool dataIDCheck(char *p_recv_raw_data);
+    bool dataCheck();
+    void dataToMsg();
 };
 
 }

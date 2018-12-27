@@ -3,14 +3,15 @@ upper_layer_receive: false
 lower_layer_send: true
 lower_layer_receive: true
 
-reconfig: true
-send_default_when_no_msg: false
-verbose_log: true
-
 ecu_ip: "172.16.16.168"
 ecu_port: 8181
 udp_server_port: 8181
 
 publish_period: 50 #ms
-essential_msg_max_period: 100 #ms
 check_period: 250 #ms
+udp_send_rate: 40
+
+reconfig: true
+send_default_when_no_msg: false
+log_rawdata: false
+publish_rawdata: false
