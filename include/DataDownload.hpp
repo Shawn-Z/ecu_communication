@@ -74,7 +74,8 @@ union data_download_pack_two_type {
             };
             uint8_t functions_five;
         };
-        uint8_t reserve_bytes1[5];
+        uint8_t brake;
+        uint8_t reserve_bytes1[4];
     };
     uint8_t result_data[14];
 };

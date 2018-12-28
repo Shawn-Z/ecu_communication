@@ -39,8 +39,8 @@ enum class parking_control {
 };
 
 enum class ring_control {
-    on = 0,
-    off = 1
+    off = 0,
+    on = 1
 };
 
 enum class forward_big_light {
@@ -65,6 +65,7 @@ enum class turn_light {
 };
 
 enum class cylinder_select {
+    none = 0,
     left_one = 1,
     left_two = 2,
     left_three = 3,
@@ -162,6 +163,23 @@ enum class tailgate_state {
     middle = 0,
     open = 1,
     close = 2
+};
+
+enum class vertical_wall_status {
+    not_ok = 0,
+    up_one_ok = 1,
+    up_two_ok = 2,
+    up_three_ok = 3,
+    up_four_ok = 4,
+    down_one_ok = 5,
+    down_two_ok = 6,
+    down_three_ok = 7,
+    down_four_ok = 8
+};
+
+enum class park_status {
+    not_parked = 0,
+    parked = 1
 };
 
 }

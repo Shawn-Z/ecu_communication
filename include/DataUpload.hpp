@@ -73,6 +73,45 @@ union data_upload_pack_four_type {
     uint8_t pack[14];
 };
 
+union data_upload_pack_five_type {
+    struct {
+        uint32_t data_ID;
+        uint8_t valid_data_mark;
+        uint8_t valid_data_length;
+        uint32_t mileage;
+        uint8_t vehicle_roll;
+        uint8_t vehicle_pitch;
+        uint16_t left_torque;
+    };
+    uint8_t pack[14];
+};
+
+union data_upload_pack_six_type {
+    struct {
+        uint32_t data_ID;
+        uint8_t valid_data_mark;
+        uint8_t valid_data_length;
+        uint16_t right_torque;
+        uint8_t vertical_wall_status;
+        uint8_t error_code;
+        uint32_t left_pulse;
+    };
+    uint8_t pack[14];
+};
+
+union data_upload_pack_seven_type {
+    struct {
+        uint32_t data_ID;
+        uint8_t valid_data_mark;
+        uint8_t valid_data_length;
+        uint32_t right_pulse;
+        uint8_t vehical_height;
+        uint8_t park_status;
+        uint8_t reserve_bytes1[2];
+    };
+    uint8_t pack[14];
+};
+
 union ID_calculate_type {
     uint8_t data[4];
     uint32_t result;
@@ -84,6 +123,9 @@ public:
     data_upload_pack_two_type pack_two;
     data_upload_pack_three_type pack_three;
     data_upload_pack_four_type pack_four;
+    data_upload_pack_five_type pack_five;
+    data_upload_pack_six_type pack_six;
+    data_upload_pack_seven_type pack_seven;
 
     uint8_t recv_raw_data[14];
     ID_calculate_type ID_calculate;

@@ -41,7 +41,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     if (this->yaml_params_.upper_layer_receive) {
         //// add subscriber here
     }
-    ros::Duration(this->yaml_params_.check_period).sleep();
+//    ros::Duration(this->yaml_params_.check_period).sleep();
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(this->yaml_params_.check_period),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
 }
@@ -173,10 +173,10 @@ bool CommunicationProcess::udpReceiveCheck() {
     bool pack_recv_duration_check = true;
     bool pack_recv_till_now_check = true;
     //// todo modify parameter of check
-    udp_recv_duration_check = this->udp_recv_times_.checkTimestampsDuration(-1, -1);
-    udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, -1);
-    pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(-1, -1);
-    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
+//    udp_recv_duration_check = this->udp_recv_times_.checkTimestampsDuration(-1, -1);
+//    udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, -1);
+//    pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(-1, -1);
+//    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
     if (udp_recv_duration_check && udp_recv_till_now_check && pack_recv_duration_check && pack_recv_till_now_check) {
         this->ros_publish_switch_ = true;
     } else {
@@ -245,9 +245,11 @@ void CommunicationProcess::paramsInit() {
     while (!(this->private_nh_.getParam("publish_period", this->yaml_params_.publish_period))) {
         ROS_ERROR_STREAM("param not retrieved");
     }
+    this->yaml_params_.publish_period *= 0.001;
     while (!(this->private_nh_.getParam("check_period", this->yaml_params_.check_period))) {
         ROS_ERROR_STREAM("param not retrieved");
     }
+    this->yaml_params_.check_period *= 0.001;
     while (!(this->private_nh_.getParam("udp_send_rate", this->yaml_params_.udp_send_rate))) {
         ROS_ERROR_STREAM("param not retrieved");
     }
@@ -292,34 +294,36 @@ CommunicationProcess::~CommunicationProcess() {
 }
 
 void CommunicationProcess::fake_issue() {
-    this->data_download_.pack_one.work_mode = (int)three_one_control::work_mode::curvature_and_vehicle_speed;
-    if (this->params_.issue_speed_fake) {
-        this->data_download_.pack_one.expect_vehicle_speed = (uint8_t)this->params_.fake_issue_speed * 10;
+    if (this->params_.fake_drive) {
+        this->data_download_.pack_one.work_mode = this->params_.work_mode;
+        this->data_download_.pack_one.vehicle_gear = this->params_.driving_gear;
+        this->data_download_.pack_one.expect_vehicle_speed = (int)(this->params_.vehicle_speed * 10);
+        this->data_download_.pack_one.vehicle_turn_to = this->params_.turn_to_left? 0: 1;
+        this->data_download_.pack_one.thousand_times_curvature = (int)(this->params_.vehicle_curvature * 1000);
+        this->data_download_.pack_one.left_wheel_rotate = this->params_.left_wheel_forward? 0: 1;
+        this->data_download_.pack_one.right_wheel_rotate = this->params_.right_wheel_forward? 0: 1;
+        this->data_download_.pack_one.expect_left_speed = (int)(this->params_.left_wheel_speed * 10);
+        this->data_download_.pack_one.expect_right_speed = (int)(this->params_.right_wheel_speed * 10);
+        this->data_download_.pack_two.brake = this->params_.vehicle_brake;
+        this->data_download_.pack_one.parking_control = this->params_.park? 1: 0;
     }
-    if (this->params_.issue_steer_fake) {
-        if (this->params_.fake_issue_steer > 0) {
-            this->data_download_.pack_one.vehicle_turn_to = int(three_one_control::vehicle_turn_to::right);
-        } else {
-            this->data_download_.pack_one.vehicle_turn_to = int(three_one_control::vehicle_turn_to::left);
-        }
-        double_t vehicle_length = 5.0;
-        this->data_download_.pack_one.thousand_times_curvature = (uint16_t)(tan(this->params_.fake_issue_steer * M_PI / 180.0) / vehicle_length * 1000);
+    if (this->params_.fake_suspension) {
+        this->data_download_.pack_two.cylinder_select = this->params_.cylinder_select;
+        this->data_download_.pack_two.suspension_select = this->params_.suspension_select;
+        this->data_download_.pack_two.suspension_work_mode = this->params_.suspension_mode;
+        this->data_download_.pack_two.suspension_work_mode_detail = this->params_.suspension_mode_detail;
+        this->data_download_.pack_two.suspension_cylinder_select_mode = this->params_.suspension_cylinder_select;
+        this->data_download_.pack_two.suspension_cylinder_motor_control = this->params_.suspension_motor? 1: 0;
+        this->data_download_.pack_two.vertical_wall_mode = this->params_.vertical_wall_mode;
+        this->data_download_.pack_two.fix_two_chamber_valve = this->params_.fix_two_chamber? 1: 0;
     }
-    if (this->params_.issue_gear_fake) {
-        switch (this->params_.fake_issue_gear) {
-            case (this->params_.fake_issue_gear_D): {
-                this->data_download_.pack_one.vehicle_gear = (int)three_one_control::vehicle_gear::D;
-                break;
-            }
-            case (this->params_.fake_issue_gear_R): {
-                this->data_download_.pack_one.vehicle_gear = (int)three_one_control::vehicle_gear::R;
-                break;
-            }
-            default: {
-                this->data_download_.pack_one.vehicle_gear = (int)three_one_control::vehicle_gear::N;
-                break;
-            }
-        }
+
+    if (this->params_.fake_functions) {
+        this->data_download_.pack_one.ring_control = this->params_.ring? 1: 0;
+        this->data_download_.pack_one.forward_big_light = this->params_.forward_light;
+        this->data_download_.pack_one.wide_taillight = this->params_.wide_taillight? 1: 0;
+        this->data_download_.pack_one.turn_light = this->params_.turn_light;
+        this->data_download_.pack_two.tailgate_control = this->params_.tailgate;
     }
 }
 
