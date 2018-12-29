@@ -10,6 +10,7 @@
 
 namespace ecu_communication {
 
+#pragma pack(1)
 union data_upload_pack_one_type {
     struct {
         uint32_t data_ID;
@@ -116,6 +117,7 @@ union ID_calculate_type {
     uint8_t data[4];
     uint32_t result;
 };
+#pragma pack()
 
 class DataUpload {
 public:

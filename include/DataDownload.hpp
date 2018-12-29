@@ -10,6 +10,7 @@
 
 namespace ecu_communication {
 
+#pragma pack(1)
 union data_download_pack_one_type {
     struct {
         uint32_t data_ID;
@@ -79,6 +80,7 @@ union data_download_pack_two_type {
     };
     uint8_t result_data[14];
 };
+#pragma pack()
 
 class DataDownload {
 public:
