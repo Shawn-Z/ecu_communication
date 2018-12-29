@@ -13,6 +13,7 @@ DataUpload::DataUpload() {
     memset(this->recv_raw_data, 0, sizeof(this->recv_raw_data));
     this->ID_calculate.result = 0;
     this->recv_counter = 0;
+    this->recv_rawdata.recv_rawdata.clear();
 }
 
 bool DataUpload::dataIDCheck(char *p_recv_raw_data) {
