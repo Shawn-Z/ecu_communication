@@ -36,7 +36,7 @@ struct yaml_params_type {
 
     double_t publish_period;
     double_t check_period;
-    double_t udp_send_rate;
+    double_t udp_send_period;
 
     bool reconfig;
     bool send_default_when_no_msg;
@@ -74,6 +74,7 @@ public:
     ros::NodeHandle private_nh_;
     ros::Timer data_process_timer_;
     ros::Timer time_check_timer_;
+    ros::Timer udp_send_timer_;
     ros::Publisher recv_data_publisher_;
     ros::Publisher udp_recv_rawdata_publisher_;
     ros::Publisher udp_send_rawdata_publisher_;
@@ -91,17 +92,18 @@ public:
     UDPServer udp_server_;
     UDPClient udp_client_;
     std::thread udp_receive_thread;
-    std::thread udp_send_thread;
+    shawn::SProportion udp_send_proportion_;
+    shawn::handle udp_pack_handle_;
 
     //// UDP communication data and variables
     DataUpload data_upload_;
     DataDownload data_download_;
     std::mutex data_upload_mutex_;
-    std::mutex data_download_mutex_;
 
     void paramsInit();
     void reconfigureRequest(ecu_communicationConfig &config, uint32_t level);
     void udpReceive();
+    void udpSendInit();
     void udpSend();
     void dataProcess();
     void fake_issue();

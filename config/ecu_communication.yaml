@@ -7,9 +7,9 @@ ecu_ip: "172.16.16.168"
 ecu_port: 8181
 udp_server_port: 8181
 
-publish_period: 50 #ms
+publish_period: 20 #ms
 check_period: 250 #ms
-udp_send_rate: 40
+udp_send_period: 25 #ms
 
 reconfig: true
 send_default_when_no_msg: false

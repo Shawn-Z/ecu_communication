@@ -14,9 +14,9 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     this->nh_ = node_handle;
     this->private_nh_ = private_node_handle;
 
-    paramsInit();
-    glogInit();
-    setTimeCheckHandle();
+    this->paramsInit();
+    this->glogInit();
+    this->setTimeCheckHandle();
 
     if (this->yaml_params_.reconfig) {
         this->reconfigSrv_.setCallback(boost::bind(&CommunicationProcess::reconfigureRequest, this, _1, _2));
@@ -30,8 +30,9 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
         this->udp_receive_thread.detach();
     }
     if (this->yaml_params_.lower_layer_send) {
-        this->udp_send_thread = std::thread(&CommunicationProcess::udpSend, this);
-        this->udp_send_thread.detach();
+        this->udpSendInit();
+        this->udp_send_timer_ = this->nh_.createTimer(ros::Duration(this->yaml_params_.udp_send_period),
+                                                      boost::bind(&CommunicationProcess::udpSend, this));
     }
     if (this->yaml_params_.upper_layer_send) {
         this->recv_data_publisher_ = this->nh_.advertise<three_one_msgs::report>("/ecudatareport", 1);
@@ -80,42 +81,37 @@ void CommunicationProcess::udpReceive() {
     }
 }
 
-void CommunicationProcess::udpSend() {
+void CommunicationProcess::udpSendInit() {
     while (!(this->udp_client_.init(this->yaml_params_.ecu_ip.data(), this->yaml_params_.ecu_port))) {
         ROS_ERROR_STREAM("UDP SEND INIT FAILURE, KEEP TRYING!");
     }
-    shawn::SProportion send_proportion;
-    send_proportion.inputProportion(1, 1);
-    shawn::handle pack_handle;
-    ros::Rate loop_rate(this->yaml_params_.udp_send_rate);
-    while (ros::ok()) {
-        if (!(this->udp_send_switch_ || this->yaml_params_.send_default_when_no_msg || this->params_.fake_issue)) {
-            continue;
-        }
-        pack_handle.setID(send_proportion.stepping());
-        if (!this->udp_send_switch_) {
-            this->data_download_.init();
-        }
-        if (this->params_.fake_issue) {
-            fake_issue();
-        }
-        this->data_download_mutex_.lock();
-        this->data_download_.prepareSend(pack_handle);
-        this->data_download_mutex_.unlock();
-        if (!this->udp_client_.process(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
-            LOG_ERROR << "UDP send error, send length: " << this->udp_client_.get_send_len() << ". raw data as following:";
-            this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
-        }
-        this->data_download_.send_rawdata.send_rawdata.clear();
-        this->data_download_.send_rawdata.send_rawdata.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + this->udp_client_.get_send_len());
-        if (this->yaml_params_.log_rawdata) {
-            LOG_INFO << "UDP send raw data log";
-            this->sLog_.logUint8Vector(this->data_download_.send_rawdata.send_rawdata, google::INFO);
-        }
-        if (this->yaml_params_.publish_rawdata) {
-            this->udp_send_rawdata_publisher_.publish(this->data_download_.send_rawdata);
-        }
-        loop_rate.sleep();
+    this->udp_send_proportion_.inputProportion(1, 1);
+}
+
+void CommunicationProcess::udpSend() {
+    if (!(this->udp_send_switch_ || this->yaml_params_.send_default_when_no_msg || this->params_.fake_issue)) {
+        return;
+    }
+    this->udp_pack_handle_.setID(this->udp_send_proportion_.stepping());
+    if (!this->udp_send_switch_) {
+        this->data_download_.init();
+    }
+    if (this->params_.fake_issue) {
+        fake_issue();
+    }
+    this->data_download_.prepareSend(this->udp_pack_handle_);
+    if (!this->udp_client_.process(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
+        LOG_ERROR << "UDP send error, send length: " << this->udp_client_.get_send_len() << ". raw data as following:";
+        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
+    }
+    this->data_download_.send_rawdata.send_rawdata.clear();
+    this->data_download_.send_rawdata.send_rawdata.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + this->udp_client_.get_send_len());
+    if (this->yaml_params_.log_rawdata) {
+        LOG_INFO << "UDP send raw data log";
+        this->sLog_.logUint8Vector(this->data_download_.send_rawdata.send_rawdata, google::INFO);
+    }
+    if (this->yaml_params_.publish_rawdata) {
+        this->udp_send_rawdata_publisher_.publish(this->data_download_.send_rawdata);
     }
 }
 
@@ -250,9 +246,10 @@ void CommunicationProcess::paramsInit() {
         ROS_ERROR_STREAM("param not retrieved");
     }
     this->yaml_params_.check_period *= 0.001;
-    while (!(this->private_nh_.getParam("udp_send_rate", this->yaml_params_.udp_send_rate))) {
+    while (!(this->private_nh_.getParam("udp_send_period", this->yaml_params_.udp_send_period))) {
         ROS_ERROR_STREAM("param not retrieved");
     }
+    this->yaml_params_.udp_send_period *= 0.001;
 
     while (!(this->private_nh_.getParam("reconfig", this->yaml_params_.reconfig))) {
         ROS_ERROR_STREAM("param not retrieved");
