@@ -13,5 +13,5 @@ udp_send_period: 25 #ms
 
 reconfig: true
 send_default_when_no_msg: false
-log_rawdata: false
-publish_rawdata: false
+log_rawdata: true
+publish_rawdata: true
