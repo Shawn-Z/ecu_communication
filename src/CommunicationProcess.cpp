@@ -1,10 +1,5 @@
 #include "CommunicationProcess.hpp"
 
-#define LOG_INFO LOG(INFO)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
-#define LOG_WARN LOG(WARNING)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
-#define LOG_ERROR LOG(ERROR)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
-#define LOG_FATAL LOG(FATAL)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
-#define FIXED std::setiosflags(std::ios::fixed)<<
 
 namespace ecu_communication {
 //// todo some callback apply to current framework
@@ -31,19 +26,19 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
     if (this->yaml_params_.lower_layer_send) {
         this->udpSendInit();
-        this->udp_send_timer_ = this->nh_.createTimer(ros::Duration(this->yaml_params_.udp_send_period),
+        this->udp_send_timer_ = this->nh_.createTimer(ros::Duration(UDP_SEND_PERIOD),
                                                       boost::bind(&CommunicationProcess::udpSend, this));
     }
     if (this->yaml_params_.upper_layer_send) {
         this->recv_data_publisher_ = this->nh_.advertise<three_one_msgs::report>("/ecudatareport", 1);
-        this->data_process_timer_ = this->nh_.createTimer(ros::Duration(this->yaml_params_.publish_period),
+        this->data_process_timer_ = this->nh_.createTimer(ros::Duration(PUBLISH_PERIOD),
                                                           boost::bind(&CommunicationProcess::dataProcess, this));
     }
     if (this->yaml_params_.upper_layer_receive) {
         //// add subscriber here
     }
 //    ros::Duration(this->yaml_params_.check_period).sleep();
-    this->time_check_timer_ = this->nh_.createTimer(ros::Duration(this->yaml_params_.check_period),
+    this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
 }
 
@@ -215,53 +210,24 @@ void CommunicationProcess::timeCheck() {
 }
 
 void CommunicationProcess::paramsInit() {
-    while (!(this->private_nh_.getParam("upper_layer_send", this->yaml_params_.upper_layer_send))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
-    while (!(this->private_nh_.getParam("upper_layer_receive", this->yaml_params_.upper_layer_receive))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
-    while (!(this->private_nh_.getParam("lower_layer_send", this->yaml_params_.lower_layer_send))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
-    while (!(this->private_nh_.getParam("lower_layer_receive", this->yaml_params_.lower_layer_receive))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
+    bool tmp_result = true;
+    tmp_result &= this->private_nh_.getParam("upper_layer_send", this->yaml_params_.upper_layer_send);
+    tmp_result &= this->private_nh_.getParam("upper_layer_receive", this->yaml_params_.upper_layer_receive);
+    tmp_result &= this->private_nh_.getParam("lower_layer_send", this->yaml_params_.lower_layer_send);
+    tmp_result &= this->private_nh_.getParam("lower_layer_receive", this->yaml_params_.lower_layer_receive);
 
-    while (!(this->private_nh_.getParam("ecu_ip", this->yaml_params_.ecu_ip))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
-    while (!(this->private_nh_.getParam("ecu_port", this->yaml_params_.ecu_port))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
-    while (!(this->private_nh_.getParam("udp_server_port", this->yaml_params_.udp_server_port))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
+    tmp_result &= this->private_nh_.getParam("ecu_ip", this->yaml_params_.ecu_ip);
+    tmp_result &= this->private_nh_.getParam("ecu_port", this->yaml_params_.ecu_port);
+    tmp_result &= this->private_nh_.getParam("udp_server_port", this->yaml_params_.udp_server_port);
 
-    while (!(this->private_nh_.getParam("publish_period", this->yaml_params_.publish_period))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
-    this->yaml_params_.publish_period *= 0.001;
-    while (!(this->private_nh_.getParam("check_period", this->yaml_params_.check_period))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
-    this->yaml_params_.check_period *= 0.001;
-    while (!(this->private_nh_.getParam("udp_send_period", this->yaml_params_.udp_send_period))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
-    this->yaml_params_.udp_send_period *= 0.001;
+    tmp_result &= this->private_nh_.getParam("reconfig", this->yaml_params_.reconfig);
+    tmp_result &= this->private_nh_.getParam("send_default_when_no_msg", this->yaml_params_.send_default_when_no_msg);
+    tmp_result &= this->private_nh_.getParam("log_rawdata", this->yaml_params_.log_rawdata);
+    tmp_result &= this->private_nh_.getParam("publish_rawdata", this->yaml_params_.publish_rawdata);
 
-    while (!(this->private_nh_.getParam("reconfig", this->yaml_params_.reconfig))) {
+    if (!tmp_result) {
         ROS_ERROR_STREAM("param not retrieved");
-    }
-    while (!(this->private_nh_.getParam("send_default_when_no_msg", this->yaml_params_.send_default_when_no_msg))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
-    while (!(this->private_nh_.getParam("log_rawdata", this->yaml_params_.log_rawdata))) {
-        ROS_ERROR_STREAM("param not retrieved");
-    }
-    while (!(this->private_nh_.getParam("publish_rawdata", this->yaml_params_.publish_rawdata))) {
-        ROS_ERROR_STREAM("param not retrieved");
+        ros::shutdown();
     }
 
     this->udp_send_switch_ = false;

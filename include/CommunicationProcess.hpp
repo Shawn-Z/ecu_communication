@@ -24,6 +24,16 @@
 
 namespace ecu_communication {
 
+#define PUBLISH_PERIOD 0.02
+#define CHECK_PERIOD 0.25
+#define UDP_SEND_PERIOD 0.025
+
+#define LOG_INFO LOG(INFO)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
+#define LOG_WARN LOG(WARNING)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
+#define LOG_ERROR LOG(ERROR)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
+#define LOG_FATAL LOG(FATAL)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
+#define FIXED std::setiosflags(std::ios::fixed)<<
+
 struct yaml_params_type {
     bool upper_layer_send;
     bool upper_layer_receive;
@@ -33,10 +43,6 @@ struct yaml_params_type {
     std::string ecu_ip;
     int ecu_port;
     int udp_server_port;
-
-    double_t publish_period;
-    double_t check_period;
-    double_t udp_send_period;
 
     bool reconfig;
     bool send_default_when_no_msg;
