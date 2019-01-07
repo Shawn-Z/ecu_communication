@@ -9,8 +9,8 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     this->nh_ = node_handle;
     this->private_nh_ = private_node_handle;
 
-    this->paramsInit();
     this->glogInit();
+    this->paramsInit();
     this->setTimeCheckHandle();
 
     if (this->yaml_params_.reconfig) {
@@ -37,7 +37,6 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     if (this->yaml_params_.upper_layer_receive) {
         //// add subscriber here
     }
-//    ros::Duration(this->yaml_params_.check_period).sleep();
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
 }
@@ -280,7 +279,6 @@ void CommunicationProcess::fake_issue() {
         this->data_download_.pack_two.vertical_wall_mode = this->params_.vertical_wall_mode;
         this->data_download_.pack_two.fix_two_chamber_valve = this->params_.fix_two_chamber? 1: 0;
     }
-
     if (this->params_.fake_functions) {
         this->data_download_.pack_one.ring_control = this->params_.ring? 1: 0;
         this->data_download_.pack_one.forward_big_light = this->params_.forward_light;

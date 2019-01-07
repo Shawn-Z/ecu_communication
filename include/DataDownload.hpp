@@ -92,7 +92,6 @@ public:
     DataDownload();
     void init();
     void prepareSend(shawn::handle p_handle);
-    void modify_data_for_test();
 };
 
 }
