@@ -6,7 +6,7 @@ DataDownload::DataDownload() {
     memset(this->pack_one.result_data, 0, sizeof(this->pack_one.result_data));
     memset(this->pack_two.result_data, 0, sizeof(this->pack_two.result_data));
     memset(this->data_to_send, 0, sizeof(this->data_to_send));
-    this->send_rawdata.send_rawdata.clear();
+    this->send_rawdata.data.clear();
     this->pack_one.data_ID = 0xE0000000;
     this->pack_two.data_ID = 0xE1000000;
     this->pack_one.valid_data_mark = 1;

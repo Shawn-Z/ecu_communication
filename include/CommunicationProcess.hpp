@@ -7,20 +7,23 @@
 #include <mutex>
 #include <vector>
 #include <glog/logging.h>
+
 #include <dynamic_reconfigure/server.h>
 #include "ecu_communication/ecu_communicationParameters.h"
-#include "three_one_msgs/control.h"
+
 #include "three_one_msgs/report.h"
-#include "three_one_msgs/recv_rawdata.h"
-#include "three_one_msgs/send_rawdata.h"
+#include "three_one_msgs/rawdata_recv.h"
+#include "three_one_msgs/rawdata_send.h"
+
+#include "STime.hpp"
+#include "SLog.hpp"
+#include "SProportion.hpp"
+
 #include "ThreeOne.hpp"
 #include "UDPClient.hpp"
 #include "UDPServer.hpp"
 #include "DataUpload.hpp"
 #include "DataDownload.hpp"
-#include "STime.hpp"
-#include "SLog.hpp"
-#include "SProportion.hpp"
 
 namespace ecu_communication {
 
@@ -111,6 +114,7 @@ public:
     void udpReceive();
     void udpSendInit();
     void udpSend();
+    void reportControlData();
     void dataProcess();
     void fake_issue();
     void timeCheck();

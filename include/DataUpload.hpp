@@ -5,10 +5,14 @@
 #include <stdint-gcc.h>
 #include <cstring>
 #include "three_one_msgs/report.h"
-#include "three_one_msgs/recv_rawdata.h"
+#include "three_one_msgs/rawdata_recv.h"
 #include "SHandle.hpp"
+#include "ThreeOne.hpp"
 
 namespace ecu_communication {
+
+#define REDUCTION_RATIO 17
+#define TIRE_RADIUS 0.348 //m
 
 #pragma pack(1)
 union data_upload_pack_one_type {
@@ -82,7 +86,7 @@ union data_upload_pack_five_type {
         uint32_t mileage;
         uint8_t vehicle_roll;
         uint8_t vehicle_pitch;
-        uint16_t left_torque;
+        int16_t left_torque;
     };
     uint8_t pack[14];
 };
@@ -92,7 +96,7 @@ union data_upload_pack_six_type {
         uint32_t data_ID;
         uint8_t valid_data_mark;
         uint8_t valid_data_length;
-        uint16_t right_torque;
+        int16_t right_torque;
         uint8_t vertical_wall_status;
         uint8_t error_code;
         uint32_t left_pulse;
@@ -134,7 +138,10 @@ public:
     uint64_t recv_counter;
     shawn::handle pack_handle;
     three_one_msgs::report report;
-    three_one_msgs::recv_rawdata recv_rawdata;
+    three_one_msgs::rawdata_recv recv_rawdata;
+
+    double_t rpm_to_speed;
+    double_t one_pulse_distance;
 
     DataUpload();
     void dataDistribution();

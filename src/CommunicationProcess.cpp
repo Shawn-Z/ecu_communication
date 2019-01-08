@@ -17,8 +17,8 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
         this->reconfigSrv_.setCallback(boost::bind(&CommunicationProcess::reconfigureRequest, this, _1, _2));
     }
     if (this->yaml_params_.publish_rawdata) {
-        this->udp_recv_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::recv_rawdata>("/udp_recv_rawdata", 1);
-        this->udp_send_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::send_rawdata>("/udp_send_rawdata", 1);
+        this->udp_recv_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::rawdata_recv>("/udp_recv_rawdata", 1);
+        this->udp_send_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::rawdata_send>("/udp_send_rawdata", 1);
     }
     if (this->yaml_params_.lower_layer_receive) {
         this->udp_receive_thread = std::thread(&CommunicationProcess::udpReceive, this);
@@ -47,8 +47,8 @@ void CommunicationProcess::udpReceive() {
     }
     while (ros::ok()) {
         this->udp_server_.process();
-        this->data_upload_.recv_rawdata.recv_rawdata.clear();
-        this->data_upload_.recv_rawdata.recv_rawdata.assign(this->udp_server_.buffer, this->udp_server_.buffer + this->udp_server_.get_recv_len());
+        this->data_upload_.recv_rawdata.data.clear();
+        this->data_upload_.recv_rawdata.data.assign(this->udp_server_.buffer, this->udp_server_.buffer + this->udp_server_.get_recv_len());
         this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
         if (this->udp_server_.get_recv_len() == 14) {
             this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
@@ -59,15 +59,15 @@ void CommunicationProcess::udpReceive() {
                 this->data_upload_mutex_.unlock();
             } else {
                 LOG_ERROR << "UDP receive ID error, receive raw data as following:";
-                this->sLog_.logUint8Vector(this->data_upload_.recv_rawdata.recv_rawdata, google::ERROR);
+                this->sLog_.logUint8Vector(this->data_upload_.recv_rawdata.data, google::ERROR);
             }
         } else {
             LOG_ERROR << "UDP receive length error, length is: " << this->udp_server_.get_recv_len() << ". raw data as following:";
-            this->sLog_.logUint8Vector(this->data_upload_.recv_rawdata.recv_rawdata, google::ERROR);
+            this->sLog_.logUint8Vector(this->data_upload_.recv_rawdata.data, google::ERROR);
         }
         if (this->yaml_params_.log_rawdata) {
             LOG_INFO << "UDP receive raw data log";
-            this->sLog_.logUint8Vector(this->data_upload_.recv_rawdata.recv_rawdata, google::INFO);
+            this->sLog_.logUint8Vector(this->data_upload_.recv_rawdata.data, google::INFO);
         }
         if (this->yaml_params_.publish_rawdata) {
             this->udp_recv_rawdata_publisher_.publish(this->data_upload_.recv_rawdata);
@@ -98,11 +98,11 @@ void CommunicationProcess::udpSend() {
         LOG_ERROR << "UDP send error, send length: " << this->udp_client_.get_send_len() << ". raw data as following:";
         this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
     }
-    this->data_download_.send_rawdata.send_rawdata.clear();
-    this->data_download_.send_rawdata.send_rawdata.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + this->udp_client_.get_send_len());
+    this->data_download_.send_rawdata.data.clear();
+    this->data_download_.send_rawdata.data.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + this->udp_client_.get_send_len());
     if (this->yaml_params_.log_rawdata) {
         LOG_INFO << "UDP send raw data log";
-        this->sLog_.logUint8Vector(this->data_download_.send_rawdata.send_rawdata, google::INFO);
+        this->sLog_.logUint8Vector(this->data_download_.send_rawdata.data, google::INFO);
     }
     if (this->yaml_params_.publish_rawdata) {
         this->udp_send_rawdata_publisher_.publish(this->data_download_.send_rawdata);
@@ -125,6 +125,7 @@ void CommunicationProcess::dataProcess() {
     }
     this->data_upload_.dataToMsg();
     this->data_upload_mutex_.unlock();
+    this->reportControlData();
     this->recv_data_publisher_.publish(this->data_upload_.report);
 }
 
@@ -286,6 +287,25 @@ void CommunicationProcess::fake_issue() {
         this->data_download_.pack_one.turn_light = this->params_.turn_light;
         this->data_download_.pack_two.tailgate_control = this->params_.tailgate;
     }
+}
+
+void CommunicationProcess::reportControlData() {
+    this->data_upload_.report.control.curvature = this->data_download_.pack_one.thousand_times_curvature / 1000.0;
+    this->data_upload_.report.control.speed = this->data_download_.pack_one.expect_vehicle_speed / 10.0;
+    this->data_upload_.report.control.work_mode = this->data_download_.pack_one.work_mode;
+    this->data_upload_.report.control.gear = this->data_download_.pack_one.vehicle_gear;
+    this->data_upload_.report.control.turn_to = this->data_download_.pack_one.vehicle_turn_to;
+    this->data_upload_.report.control.brake = this->data_download_.pack_two.brake;
+    this->data_upload_.report.control.park = this->data_download_.pack_one.parking_control;
+
+    this->data_upload_.report.control.cylinder_select = this->data_download_.pack_two.cylinder_select;
+    this->data_upload_.report.control.suspension_select = this->data_download_.pack_two.suspension_select;
+    this->data_upload_.report.control.vertical_wall_mode = this->data_download_.pack_two.vertical_wall_mode;
+    this->data_upload_.report.control.suspension_work_mode = this->data_download_.pack_two.suspension_work_mode;
+    this->data_upload_.report.control.suspension_work_mode_detail = this->data_download_.pack_two.suspension_work_mode_detail;
+    this->data_upload_.report.control.suspension_cylinder_select_mode = this->data_download_.pack_two.suspension_cylinder_select_mode;
+    this->data_upload_.report.control.suspension_cylinder_motor_control = this->data_download_.pack_two.suspension_cylinder_motor_control;
+    this->data_upload_.report.control.fix_two_chamber_valve = this->data_download_.pack_two.fix_two_chamber_valve;
 }
 
 }

@@ -13,7 +13,10 @@ DataUpload::DataUpload() {
     memset(this->recv_raw_data, 0, sizeof(this->recv_raw_data));
     this->ID_calculate.result = 0;
     this->recv_counter = 0;
-    this->recv_rawdata.recv_rawdata.clear();
+    this->recv_rawdata.data.clear();
+
+    this->rpm_to_speed = TIRE_RADIUS * M_PI / REDUCTION_RATIO / 30.0;
+    this->one_pulse_distance = TIRE_RADIUS * M_PI / 17;
 }
 
 bool DataUpload::dataIDCheck(char *p_recv_raw_data) {
@@ -191,18 +194,37 @@ bool DataUpload::dataCheck() {
 void DataUpload::dataToMsg() {
     this->report.counter = this->recv_counter;
 
-    this->report.give_back.left_wheel_expect_speed = this->pack_one.left_wheel_expect_speed * 0.001;
-    this->report.give_back.right_wheel_expect_speed = this->pack_one.right_wheel_expect_speed * 0.001;
-    this->report.vehicle_state.mechanical_brake = this->pack_one.mechanical_brake * 0.1;
-    this->report.speed.vehicle_speed = this->pack_one.vehicle_speed * 0.1;
-    this->report.gear.current_gear = this->pack_one.gear;
+    this->report.motion.park = this->pack_seven.park_status;
+    this->report.motion.current_gear = this->pack_one.gear;
+    this->report.motion.left_wheel_rotate = this->pack_two.left_motor_gear;
+    this->report.motion.right_wheel_rotate = this->pack_two.right_motor_gear;
+    this->report.motion.left_motor_rpm = this->pack_two.left_motor_actual_speed;
+    this->report.motion.right_motor_rpm = this->pack_two.right_motor_actual_speed;
+    this->report.motion.mechanical_brake = this->pack_one.mechanical_brake * 0.1;
+    this->report.motion.vehicle_speed = this->pack_one.vehicle_speed * 0.1;
+    this->report.motion.left_wheel_speed =
+            ((this->pack_two.left_motor_gear == (uint8_t)three_one_feedback::left_wheel_rotate::forward)? 1: -1) *
+            this->pack_two.left_motor_actual_speed * this->rpm_to_speed;
+    this->report.motion.right_wheel_speed =
+            ((this->pack_two.right_motor_gear == (uint8_t)three_one_feedback::right_wheel_rotate ::forward)? 1: -1) *
+            this->pack_two.right_motor_actual_speed * this->rpm_to_speed;
 
-    this->report.speed.left_motor_rpm = this->pack_two.left_motor_actual_speed;
-    this->report.speed.right_motor_rpm = this->pack_two.right_motor_actual_speed;
-    this->report.gear.left_wheel_rotate = this->pack_two.left_motor_gear;
-    this->report.gear.right_wheel_rotate = this->pack_two.right_motor_gear;
-    this->report.vehicle_state.SOC = this->pack_two.SOC;
+    this->report.torque.left = this->pack_five.left_torque;
+    this->report.torque.right = this->pack_six.right_torque;
+
+    this->report.distance.mileage = this->pack_five.mileage;
+    this->report.distance.left_pulse = this->pack_six.left_pulse;
+    this->report.distance.right_pulse = this->pack_seven.right_pulse;
+    this->report.distance.left_distance = this->pack_six.left_pulse * this->one_pulse_distance;
+    this->report.distance.right_distance = this->pack_seven.right_pulse * this->one_pulse_distance;
+
+    this->report.vehicle_state.error_code = this->pack_six.error_code;
+    this->report.vehicle_state.vertical_wall_status = this->pack_six.vertical_wall_status;
+    this->report.vehicle_state.vehicle_height = this->pack_seven.vehical_height;
     this->report.vehicle_state.tailgate_state = this->pack_two.tailgate_state;
+    this->report.vehicle_state.SOC = this->pack_two.SOC;
+    this->report.vehicle_state.vehicle_roll = this->pack_five.vehicle_roll;
+    this->report.vehicle_state.vehicle_pitch = this->pack_five.vehicle_pitch;
 
     this->report.cylinder_position.left_one = this->pack_three.left_one_cylinder_position * 2;
     this->report.cylinder_position.left_two = this->pack_three.left_two_cylinder_position * 2;
@@ -222,19 +244,8 @@ void DataUpload::dataToMsg() {
     this->report.cylinder_pressure.right_three = this->pack_four.right_three_cylinder_pressure;
     this->report.cylinder_pressure.right_four = this->pack_four.right_four_cylinder_pressure;
 
-    this->report.distance.mileage = this->pack_five.mileage;
-    this->report.vehicle_state.vehicle_roll = this->pack_five.vehicle_roll;
-    this->report.vehicle_state.vehicle_pitch = this->pack_five.vehicle_pitch;
-    this->report.torque.left = this->pack_five.left_torque;
-
-    this->report.torque.right = this->pack_six.right_torque;
-    this->report.vehicle_state.vertical_wall_status = this->pack_six.vertical_wall_status;
-    this->report.vehicle_state.error_code = this->pack_six.error_code;
-    this->report.distance.left_pulse = this->pack_six.left_pulse;
-
-    this->report.distance.right_pulse = this->pack_seven.right_pulse;
-    this->report.vehicle_state.vehicle_height = this->pack_seven.vehical_height;
-    this->report.vehicle_state.park_status = this->pack_seven.park_status;
+    this->report.give_back.left_wheel_expect_speed = this->pack_one.left_wheel_expect_speed * 0.001;
+    this->report.give_back.right_wheel_expect_speed = this->pack_one.right_wheel_expect_speed * 0.001;
 }
 
 }
