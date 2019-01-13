@@ -292,6 +292,13 @@ void CommunicationProcess::fake_issue() {
 void CommunicationProcess::reportControlData() {
     this->data_upload_.report.control.curvature = this->data_download_.pack_one.thousand_times_curvature / 1000.0;
     this->data_upload_.report.control.speed = this->data_download_.pack_one.expect_vehicle_speed / 10.0;
+    if (this->data_download_.pack_one.vehicle_gear == (int)three_one_control::vehicle_gear::R) {
+        this->data_upload_.report.control.speed = -this->data_upload_.report.control.speed;
+    }
+    if (this->data_download_.pack_one.vehicle_gear == (int)three_one_control::vehicle_gear::N) {
+        this->data_upload_.report.control.speed = 0;
+    }
+    this->data_upload_.report.control.rpm = (uint16_t)(fabs(this->data_upload_.report.control.speed / this->data_upload_.rpm_to_speed));
     this->data_upload_.report.control.work_mode = this->data_download_.pack_one.work_mode;
     this->data_upload_.report.control.gear = this->data_download_.pack_one.vehicle_gear;
     this->data_upload_.report.control.turn_to = this->data_download_.pack_one.vehicle_turn_to;
