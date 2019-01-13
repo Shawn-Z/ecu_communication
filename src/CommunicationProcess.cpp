@@ -97,6 +97,7 @@ void CommunicationProcess::udpSend() {
     if (!this->udp_client_.process(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
         LOG_ERROR << "UDP send error, send length: " << this->udp_client_.get_send_len() << ". raw data as following:";
         this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
+        return;
     }
     this->data_download_.send_rawdata.data.clear();
     this->data_download_.send_rawdata.data.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + this->udp_client_.get_send_len());
