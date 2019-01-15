@@ -1,7 +1,7 @@
-upper_layer_send: false
+upper_layer_send: true
 upper_layer_receive: false
 lower_layer_send: true
-lower_layer_receive: false
+lower_layer_receive: true
 
 ecu_ip: "172.16.16.168"
 ecu_port: 8181

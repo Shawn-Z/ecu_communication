@@ -27,7 +27,7 @@
 
 namespace ecu_communication {
 
-#define PUBLISH_PERIOD 0.02
+#define PUBLISH_PERIOD 0.008
 #define CHECK_PERIOD 0.25
 #define UDP_SEND_PERIOD 0.025
 
