@@ -25,6 +25,9 @@ public:
     uint8_t work_mode_;
     shawn::SLog *p_log_;
 
+    ros::Timer data_send_timer_;
+    ros::NodeHandle nh_;
+
     //// UDP communication data and variables
     uint16_t server_port_;
 
@@ -48,7 +51,7 @@ public:
     shawn::handle pack2_recv_handle_;
 
 
-    void init(DataDownload *p_data_download, DataUpload *p_data_upload, std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex, shawn::SLog *p_log);
+    void init(ros::NodeHandle node_handle, DataDownload *p_data_download, DataUpload *p_data_upload, std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex, shawn::SLog *p_log);
     void receiveInit(uint16_t p_server_port);
     void sendInit(std::string p_remote_ip, uint16_t p_remote_port);
     void dataReceive();

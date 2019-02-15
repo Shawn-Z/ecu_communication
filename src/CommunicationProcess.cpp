@@ -1,6 +1,6 @@
 #include "CommunicationProcess.hpp"
 
-
+//// todo manual gui
 namespace ecu_communication {
 //// todo some callback apply to current framework
 CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle)
@@ -40,12 +40,14 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
 
     if (this->yaml_params_.remote_send || this->yaml_params_.remote_receive) {
-        this->remoteControl_.init(&this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_);
+        this->remoteControl_.init(node_handle, &this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_);
         if (this->yaml_params_.remote_send) {
             this->remoteControl_.sendInit(this->yaml_params_.remote_ip, this->yaml_params_.remote_port);
         }
         if (this->yaml_params_.remote_receive) {
+            this->remoteControl_.receiveInit(this->yaml_params_.remote_server_port);
             this->remote_receive_thread_ = std::thread(&RemoteControl::dataReceive, &(this->remoteControl_));
+            this->remote_receive_thread_.detach();
         }
     }
 
@@ -227,10 +229,16 @@ void CommunicationProcess::paramsInit() {
     tmp_result &= this->private_nh_.getParam("upper_layer_receive", this->yaml_params_.upper_layer_receive);
     tmp_result &= this->private_nh_.getParam("lower_layer_send", this->yaml_params_.lower_layer_send);
     tmp_result &= this->private_nh_.getParam("lower_layer_receive", this->yaml_params_.lower_layer_receive);
+    tmp_result &= this->private_nh_.getParam("remote_receive", this->yaml_params_.remote_receive);
+    tmp_result &= this->private_nh_.getParam("remote_send", this->yaml_params_.remote_send);
 
     tmp_result &= this->private_nh_.getParam("ecu_ip", this->yaml_params_.ecu_ip);
     tmp_result &= this->private_nh_.getParam("ecu_port", this->yaml_params_.ecu_port);
     tmp_result &= this->private_nh_.getParam("udp_server_port", this->yaml_params_.udp_server_port);
+
+    tmp_result &= this->private_nh_.getParam("remote_ip", this->yaml_params_.remote_ip);
+    tmp_result &= this->private_nh_.getParam("remote_port", this->yaml_params_.remote_port);
+    tmp_result &= this->private_nh_.getParam("remote_server_port", this->yaml_params_.remote_server_port);
 
     tmp_result &= this->private_nh_.getParam("reconfig", this->yaml_params_.reconfig);
     tmp_result &= this->private_nh_.getParam("send_default_when_no_msg", this->yaml_params_.send_default_when_no_msg);
@@ -302,8 +310,27 @@ void CommunicationProcess::fake_issue() {
 }
 
 bool CommunicationProcess::modeSelect() {
-    this->work_mode_ = work_mode::ERROR;
-    //// todo this->remoteControl.getWorkMode();
+    bool mode_update_result = true;
+    mode_update_result = this->remoteControl_.time_check();
+    if (!mode_update_result) {
+        this->work_mode_ = work_mode::ERROR;
+        return false;
+    }
+
+    switch (this->remoteControl_.getWorkMode()) {
+        case 1: {
+            this->work_mode_ = work_mode::remote;
+            break;
+        }
+        case 2: {
+            this->work_mode_ = work_mode::autonoumous;
+            break;
+        }
+        default: {
+            this->work_mode_ = work_mode::ERROR;
+            break;
+        }
+    }
     return (this->work_mode_ != work_mode::ERROR);
 }
 

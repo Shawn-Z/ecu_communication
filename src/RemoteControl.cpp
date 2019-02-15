@@ -11,10 +11,13 @@ void RemoteControl::sendInit(std::string p_remote_ip, uint16_t p_remote_port) {
         ROS_ERROR_STREAM("UDP SEND TO REMOTE INIT FAILURE, KEEP TRYING!");
     }
     this->udp_send_proportion_.inputProportion(1, 1, 1, 1, 1, 1, 1);
+    this->data_send_timer_ = this->nh_.createTimer(ros::Duration(REMOTE_SEND_PERIOD),
+                                                  boost::bind(&RemoteControl::dataSend, this));
 }
 
-void RemoteControl::init(DataDownload *p_data_download, DataUpload *p_data_upload,
+void RemoteControl::init(ros::NodeHandle node_handle, DataDownload *p_data_download, DataUpload *p_data_upload,
                          std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex, shawn::SLog *p_log) {
+    this->nh_ = node_handle;
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
     this->p_data_download_mutex_ = p_data_download_mutex;
