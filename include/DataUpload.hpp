@@ -117,10 +117,14 @@ union data_upload_pack_seven_type {
     uint8_t pack[14];
 };
 
+#ifndef ID_CALCULATE
+#define ID_CALCULATE
 union ID_calculate_type {
     uint8_t data[4];
     uint32_t result;
 };
+#endif
+
 #pragma pack()
 
 class DataUpload {
@@ -148,6 +152,10 @@ public:
     bool dataIDCheck(char *p_recv_raw_data);
     bool dataCheck();
     void dataToMsg();
+
+
+    uint8_t data_to_send[14];
+    void prepareSend(shawn::handle p_handle);
 };
 
 }

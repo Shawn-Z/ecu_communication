@@ -248,4 +248,40 @@ void DataUpload::dataToMsg() {
     this->report.give_back.right_wheel_expect_speed = this->pack_one.right_wheel_expect_speed * 0.001;
 }
 
+void DataUpload::prepareSend(shawn::handle p_handle) {
+    switch (p_handle.getID()) {
+        case 0: {
+            memcpy(this->data_to_send, this->pack_one.pack, sizeof(this->pack_one.pack));
+            break;
+        }
+        case 1: {
+            memcpy(this->data_to_send, this->pack_two.pack, sizeof(this->pack_two.pack));
+            break;
+        }
+        case 2: {
+            memcpy(this->data_to_send, this->pack_three.pack, sizeof(this->pack_three.pack));
+            break;
+        }
+        case 3: {
+            memcpy(this->data_to_send, this->pack_four.pack, sizeof(this->pack_four.pack));
+            break;
+        }
+        case 4: {
+            memcpy(this->data_to_send, this->pack_five.pack, sizeof(this->pack_five.pack));
+            break;
+        }
+        case 5: {
+            memcpy(this->data_to_send, this->pack_six.pack, sizeof(this->pack_six.pack));
+            break;
+        }
+        case 6: {
+            memcpy(this->data_to_send, this->pack_seven.pack, sizeof(this->pack_seven.pack));
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+}
+
 }

@@ -7,6 +7,7 @@ add_compile_options(-std=c++11)
 set(catkin_deps
     roscpp
     three_one_msgs
+        speed_ctrl_msgs
 )
 
 find_package(catkin REQUIRED
@@ -39,7 +40,7 @@ add_executable(ecu_communication
     src/UDPClient.cpp
     src/CommunicationProcess.cpp
     src/ECUCommunication.cpp
-)
+        include/DEFINEs.hpp src/RemoteControl.cpp include/RemoteControl.hpp src/AutonomousControl.cpp include/AutonomousControl.hpp include/Transform6t.hpp)
 
 add_dependencies(ecu_communication
     ${PROJECT_NAME}_gencfg

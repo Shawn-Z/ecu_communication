@@ -80,6 +80,15 @@ union data_download_pack_two_type {
     };
     uint8_t result_data[14];
 };
+
+#ifndef ID_CALCULATE
+#define ID_CALCULATE
+union ID_calculate_type {
+    uint8_t data[4];
+    uint32_t result;
+};
+#endif
+
 #pragma pack()
 
 class DataDownload {
@@ -88,6 +97,12 @@ public:
     data_download_pack_two_type pack_two;
     uint8_t data_to_send[14];
     three_one_msgs::rawdata_send send_rawdata;
+
+    uint8_t recv_raw_data[14];
+    ID_calculate_type ID_calculate;
+    bool dataIDCheck(char *p_recv_raw_data);
+    shawn::handle pack_handle;
+    void dataDistribution();
 
     DataDownload();
     void init();

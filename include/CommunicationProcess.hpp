@@ -19,23 +19,19 @@
 #include "SLog.hpp"
 #include "SProportion.hpp"
 
+#include "DEFINEs.hpp"
+
 #include "ThreeOne.hpp"
 #include "UDPClient.hpp"
 #include "UDPServer.hpp"
 #include "DataUpload.hpp"
 #include "DataDownload.hpp"
+#include "AutonomousControl.hpp"
+#include "RemoteControl.hpp"
 
 namespace ecu_communication {
 
-#define PUBLISH_PERIOD 0.008
-#define CHECK_PERIOD 0.25
-#define UDP_SEND_PERIOD 0.025
 
-#define LOG_INFO LOG(INFO)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
-#define LOG_WARN LOG(WARNING)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
-#define LOG_ERROR LOG(ERROR)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
-#define LOG_FATAL LOG(FATAL)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
-#define FIXED std::setiosflags(std::ios::fixed)<<
 
 struct yaml_params_type {
     bool upper_layer_send;
@@ -47,10 +43,25 @@ struct yaml_params_type {
     int ecu_port;
     int udp_server_port;
 
+    std::string remote_ip;
+    int remote_port;
+    int remote_server_port;
+
     bool reconfig;
     bool send_default_when_no_msg;
     bool log_rawdata;
     bool publish_rawdata;
+
+
+    bool remote_receive;
+    bool remote_send;
+};
+
+
+enum class work_mode {
+    ERROR = 0,
+    autonoumous = 1,
+    remote = 2
 };
 
 
@@ -95,7 +106,7 @@ public:
 
     //// markers
     bool udp_send_switch_;
-    bool ros_publish_switch_;
+//    bool ros_publish_switch_;
 
     //// UDP communication
     UDPServer udp_server_;
@@ -108,20 +119,27 @@ public:
     DataUpload data_upload_;
     DataDownload data_download_;
     std::mutex data_upload_mutex_;
+    std::mutex data_download_mutex_;
 
     void paramsInit();
     void reconfigureRequest(ecu_communicationConfig &config, uint32_t level);
     void udpReceive();
     void udpSendInit();
     void udpSend();
-    void reportControlData();
-    void dataProcess();
     void fake_issue();
     void timeCheck();
     bool udpReceiveCheck();
-    bool rosmsgUpdateCheck();
     void setTimeCheckHandle();
     void glogInit();
+
+
+    work_mode work_mode_;
+
+    bool modeSelect();
+
+    AutonomousControl autonomousControl_;
+    RemoteControl remoteControl_;
+    std::thread remote_receive_thread_;
 };
 
 }

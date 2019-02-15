@@ -59,4 +59,44 @@ void DataDownload::prepareSend(shawn::handle p_handle) {
     }
 }
 
+bool DataDownload::dataIDCheck(char *p_recv_raw_data) {
+    memcpy(this->recv_raw_data, p_recv_raw_data, sizeof(this->recv_raw_data));
+    this->ID_calculate.data[0] = this->recv_raw_data[0];
+    this->ID_calculate.data[1] = this->recv_raw_data[1];
+    this->ID_calculate.data[2] = this->recv_raw_data[2];
+    this->ID_calculate.data[3] = this->recv_raw_data[3];
+    size_t tmp_ID = 0;
+    switch (this->ID_calculate.result) {
+        case 0xE0000000: {
+            tmp_ID = 0;
+            break;
+        }
+        case 0xE1000000: {
+            tmp_ID = 1;
+            break;
+        }
+        default: {
+            return false;
+        }
+    }
+    this->pack_handle.setID(tmp_ID);
+    return true;
+}
+
+void DataDownload::dataDistribution() {
+    switch (this->pack_handle.getID()) {
+        case 0: {
+            memcpy(this->pack_one.result_data, this->recv_raw_data, sizeof(this->recv_raw_data));
+            break;
+        }
+        case 1: {
+            memcpy(this->pack_two.result_data, this->recv_raw_data, sizeof(this->recv_raw_data));
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+}
+
 }

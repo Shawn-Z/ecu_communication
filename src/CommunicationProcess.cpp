@@ -29,14 +29,26 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
         this->udp_send_timer_ = this->nh_.createTimer(ros::Duration(UDP_SEND_PERIOD),
                                                       boost::bind(&CommunicationProcess::udpSend, this));
     }
-    if (this->yaml_params_.upper_layer_send) {
-        this->recv_data_publisher_ = this->nh_.advertise<three_one_msgs::report>("/ecudatareport", 1);
-        this->data_process_timer_ = this->nh_.createTimer(ros::Duration(PUBLISH_PERIOD),
-                                                          boost::bind(&CommunicationProcess::dataProcess, this));
+    if (this->yaml_params_.upper_layer_send || this->yaml_params_.upper_layer_receive) {
+        this->autonomousControl_.init(node_handle, private_node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_);
+        if (this->yaml_params_.upper_layer_send) {
+            this->autonomousControl_.send_init();
+        }
+        if (this->yaml_params_.upper_layer_receive) {
+            this->autonomousControl_.receive_init();
+        }
     }
-    if (this->yaml_params_.upper_layer_receive) {
-        //// add subscriber here
+
+    if (this->yaml_params_.remote_send || this->yaml_params_.remote_receive) {
+        this->remoteControl_.init(&this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_);
+        if (this->yaml_params_.remote_send) {
+            this->remoteControl_.sendInit(this->yaml_params_.remote_ip, this->yaml_params_.remote_port);
+        }
+        if (this->yaml_params_.remote_receive) {
+            this->remote_receive_thread_ = std::thread(&RemoteControl::dataReceive, &(this->remoteControl_));
+        }
     }
+
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
 }
@@ -47,24 +59,28 @@ void CommunicationProcess::udpReceive() {
     }
     while (ros::ok()) {
         this->udp_server_.process();
+        this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
+        if (this->udp_server_.get_recv_len() != 14) {
+            if (this->udp_server_.get_recv_len() > 0) {
+                LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len() << ". raw data as following:";
+                this->sLog_.logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
+            } else {
+                LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len();
+            }
+            continue;
+        }
+        this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
+        if (!this->data_upload_.dataIDCheck((char *)this->udp_server_.buffer)) {
+            LOG_ERROR << "ecu receive ID error, receive raw data as following:";
+            this->sLog_.logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
+            continue;
+        }
         this->data_upload_.recv_rawdata.data.clear();
         this->data_upload_.recv_rawdata.data.assign(this->udp_server_.buffer, this->udp_server_.buffer + this->udp_server_.get_recv_len());
-        this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
-        if (this->udp_server_.get_recv_len() == 14) {
-            this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
-            if (this->data_upload_.dataIDCheck((char *) this->udp_server_.buffer)) {
-                this->pack_recv_times_.pushTimestamp(this->data_upload_.pack_handle);
-                this->data_upload_mutex_.lock();
-                this->data_upload_.dataDistribution();
-                this->data_upload_mutex_.unlock();
-            } else {
-                LOG_ERROR << "UDP receive ID error, receive raw data as following:";
-                this->sLog_.logUint8Vector(this->data_upload_.recv_rawdata.data, google::ERROR);
-            }
-        } else {
-            LOG_ERROR << "UDP receive length error, length is: " << this->udp_server_.get_recv_len() << ". raw data as following:";
-            this->sLog_.logUint8Vector(this->data_upload_.recv_rawdata.data, google::ERROR);
-        }
+        this->pack_recv_times_.pushTimestamp(this->data_upload_.pack_handle);
+        this->data_upload_mutex_.lock();
+        this->data_upload_.dataDistribution();
+        this->data_upload_mutex_.unlock();
         if (this->yaml_params_.log_rawdata) {
             LOG_INFO << "UDP receive raw data log";
             this->sLog_.logUint8Vector(this->data_upload_.recv_rawdata.data, google::INFO);
@@ -93,7 +109,10 @@ void CommunicationProcess::udpSend() {
     if (this->params_.fake_issue) {
         fake_issue();
     }
+    //// todo add safe check
+    this->data_download_mutex_.lock();
     this->data_download_.prepareSend(this->udp_pack_handle_);
+    this->data_download_mutex_.unlock();
     if (!this->udp_client_.process(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
         LOG_ERROR << "UDP send error, send length: " << this->udp_client_.get_send_len() << ". raw data as following:";
         this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
@@ -108,26 +127,6 @@ void CommunicationProcess::udpSend() {
     if (this->yaml_params_.publish_rawdata) {
         this->udp_send_rawdata_publisher_.publish(this->data_download_.send_rawdata);
     }
-}
-
-void CommunicationProcess::dataProcess() {
-    if (!this->ros_publish_switch_) {
-        return;
-    }
-    this->data_upload_mutex_.lock();
-    if (!this->data_upload_.dataCheck()) {
-        LOG_ERROR << "upload data check error, raw data as following:";
-        this->sLog_.logUint8Array((char *)this->data_upload_.pack_one.pack, sizeof(this->data_upload_.pack_one.pack), google::ERROR);
-        this->sLog_.logUint8Array((char *)this->data_upload_.pack_two.pack, sizeof(this->data_upload_.pack_two.pack), google::ERROR);
-        this->sLog_.logUint8Array((char *)this->data_upload_.pack_three.pack, sizeof(this->data_upload_.pack_three.pack), google::ERROR);
-        this->sLog_.logUint8Array((char *)this->data_upload_.pack_four.pack, sizeof(this->data_upload_.pack_four.pack), google::ERROR);
-        this->data_upload_mutex_.unlock();
-        return;
-    }
-    this->data_upload_.dataToMsg();
-    this->data_upload_mutex_.unlock();
-    this->reportControlData();
-    this->recv_data_publisher_.publish(this->data_upload_.report);
 }
 
 void CommunicationProcess::reconfigureRequest(ecu_communication::ecu_communicationConfig &config, uint32_t level) {
@@ -169,43 +168,55 @@ bool CommunicationProcess::udpReceiveCheck() {
 //    udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, -1);
 //    pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(-1, -1);
 //    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
-    if (udp_recv_duration_check && udp_recv_till_now_check && pack_recv_duration_check && pack_recv_till_now_check) {
-        this->ros_publish_switch_ = true;
-    } else {
-        this->ros_publish_switch_ = false;
-        ROS_ERROR_STREAM("ERROR in UDP Receive!");
-        //// todo log details
-        return false;
-    }
-    return true;
-}
 
-bool CommunicationProcess::rosmsgUpdateCheck() {
-    //// todo modify check
-    bool msg_duration_check = true;
-    bool msg_till_now_check = true;
-    msg_duration_check = this->msg_update_times.checkTimestampsDuration(-1, -1);
-    msg_till_now_check = this->msg_update_times.checkTimestampsTillNow(-1, -1);
-    if (msg_duration_check && msg_till_now_check) {
-        this->udp_send_switch_ = true;
-    } else {
-        this->udp_send_switch_ = false;
-        ROS_ERROR_STREAM("ERROR NO ROS msg Receive!");
-        return false;
-    }
-    return true;
+    return (udp_recv_duration_check && udp_recv_till_now_check && pack_recv_duration_check && pack_recv_till_now_check);
 }
 
 void CommunicationProcess::timeCheck() {
+    if (!this->modeSelect()) {
+        this->udp_send_switch_ = false;
+        LOG_ERROR << "WORK MODE ERROR!";
+        return;
+    }
+
     bool udp_recv_check = true;
     bool msg_update_check = true;
-    if (yaml_params_.lower_layer_receive) {
+    bool remote_update_check = true;
+
+    if (this->yaml_params_.lower_layer_receive) {
         udp_recv_check = udpReceiveCheck();
     }
-    if (yaml_params_.upper_layer_receive) {
-        msg_update_check = rosmsgUpdateCheck();
+
+    switch ((int)this->work_mode_) {
+        case (int)work_mode::autonoumous: {
+            if (this->yaml_params_.upper_layer_receive) {
+                msg_update_check = this->autonomousControl_.rosmsgUpdateCheck();
+            }
+            this->autonomousControl_.send_switch_ = udp_recv_check;
+            this->remoteControl_.send_switch_ = udp_recv_check;
+            this->udp_send_switch_ = msg_update_check;
+            this->autonomousControl_.receive_switch_ = true;
+            this->remoteControl_.receive_switch_ = false;
+            break;
+        }
+        case (int)work_mode::remote: {
+            if (this->yaml_params_.remote_receive) {
+                remote_update_check = this->remoteControl_.time_check();
+            }
+            this->autonomousControl_.send_switch_ = udp_recv_check;
+            this->remoteControl_.send_switch_ = udp_recv_check;
+            this->udp_send_switch_ = remote_update_check;
+            this->autonomousControl_.receive_switch_ = false;
+            this->remoteControl_.receive_switch_ = true;
+            break;
+        }
+        default: {
+            break;
+        }
     }
-    if (udp_recv_check && msg_update_check) {
+
+    if (udp_recv_check && msg_update_check && remote_update_check) {
+        //// todo
         ROS_INFO_STREAM_THROTTLE(1, "work well");
     }
 }
@@ -232,7 +243,7 @@ void CommunicationProcess::paramsInit() {
     }
 
     this->udp_send_switch_ = false;
-    this->ros_publish_switch_ = false;
+//    this->ros_publish_switch_ = false;
     //// todo log params
 }
 
@@ -241,7 +252,7 @@ CommunicationProcess::~CommunicationProcess() {
     this->data_process_timer_.stop();
 
     this->udp_send_switch_ = false;
-    this->ros_publish_switch_ = false;
+//    this->ros_publish_switch_ = false;
     this->yaml_params_.reconfig = false;
     this->params_.fake_issue = false;
     this->yaml_params_.send_default_when_no_msg = false;
@@ -290,30 +301,10 @@ void CommunicationProcess::fake_issue() {
     }
 }
 
-void CommunicationProcess::reportControlData() {
-    this->data_upload_.report.control.curvature = this->data_download_.pack_one.thousand_times_curvature / 1000.0;
-    this->data_upload_.report.control.speed = this->data_download_.pack_one.expect_vehicle_speed / 10.0;
-    if (this->data_download_.pack_one.vehicle_gear == (int)three_one_control::vehicle_gear::R) {
-        this->data_upload_.report.control.speed = -this->data_upload_.report.control.speed;
-    }
-    if (this->data_download_.pack_one.vehicle_gear == (int)three_one_control::vehicle_gear::N) {
-        this->data_upload_.report.control.speed = 0;
-    }
-    this->data_upload_.report.control.rpm = (uint16_t)(fabs(this->data_upload_.report.control.speed / this->data_upload_.rpm_to_speed));
-    this->data_upload_.report.control.work_mode = this->data_download_.pack_one.work_mode;
-    this->data_upload_.report.control.gear = this->data_download_.pack_one.vehicle_gear;
-    this->data_upload_.report.control.turn_to = this->data_download_.pack_one.vehicle_turn_to;
-    this->data_upload_.report.control.brake = this->data_download_.pack_two.brake;
-    this->data_upload_.report.control.park = this->data_download_.pack_one.parking_control;
-
-    this->data_upload_.report.control.cylinder_select = this->data_download_.pack_two.cylinder_select;
-    this->data_upload_.report.control.suspension_select = this->data_download_.pack_two.suspension_select;
-    this->data_upload_.report.control.vertical_wall_mode = this->data_download_.pack_two.vertical_wall_mode;
-    this->data_upload_.report.control.suspension_work_mode = this->data_download_.pack_two.suspension_work_mode;
-    this->data_upload_.report.control.suspension_work_mode_detail = this->data_download_.pack_two.suspension_work_mode_detail;
-    this->data_upload_.report.control.suspension_cylinder_select_mode = this->data_download_.pack_two.suspension_cylinder_select_mode;
-    this->data_upload_.report.control.suspension_cylinder_motor_control = this->data_download_.pack_two.suspension_cylinder_motor_control;
-    this->data_upload_.report.control.fix_two_chamber_valve = this->data_download_.pack_two.fix_two_chamber_valve;
+bool CommunicationProcess::modeSelect() {
+    this->work_mode_ = work_mode::ERROR;
+    //// todo this->remoteControl.getWorkMode();
+    return (this->work_mode_ != work_mode::ERROR);
 }
 
 }

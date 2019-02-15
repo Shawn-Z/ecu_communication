@@ -52,6 +52,7 @@
   <depend>dynamic_reconfigure</depend>
   <depend>roscpp</depend>
   <depend>three_one_msgs</depend>
+  <depend>speed_ctrl_msgs</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
