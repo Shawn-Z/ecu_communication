@@ -59,6 +59,10 @@ public:
     bool time_check();
     void setWorkMode();
     uint8_t getWorkMode();
+
+    RemoteControl();
+
+    void setHandles();
 };
 
 }

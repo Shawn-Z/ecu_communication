@@ -40,10 +40,12 @@ public:
     DataUpload *p_data_upload_;
     DataDownload *p_data_download_;
     std::mutex *p_data_upload_mutex_;
+    std::mutex *p_data_download_mutex_;
 
 
     void init(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle,
-              DataDownload *p_data_download, DataUpload *p_data_upload, std::mutex *p_data_upload_mutex);
+              DataDownload *p_data_download, DataUpload *p_data_upload,
+              std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex);
     void setHandles();
     void receive_init();
     void send_init();

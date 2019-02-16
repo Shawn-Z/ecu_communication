@@ -23,6 +23,7 @@ void RemoteControl::init(ros::NodeHandle node_handle, DataDownload *p_data_downl
     this->p_data_download_mutex_ = p_data_download_mutex;
     this->p_data_upload_mutex_ = p_data_upload_mutex;
     this->p_log_ = p_log;
+    this->setHandles();
 }
 
 void RemoteControl::dataReceive() {
@@ -30,9 +31,9 @@ void RemoteControl::dataReceive() {
         ROS_ERROR_STREAM("UDP RECEIVE FROM REMOTE INIT FAILURE, KEEP TRYING!");
     }
     while (ros::ok()) {
-        if (this->receive_switch_) {
-            continue;
-        }
+//        if (!this->receive_switch_) {
+//            continue;
+//        }
         this->udp_server_.process();
         this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
         if (this->udp_server_.get_recv_len() != 14) {
@@ -52,6 +53,9 @@ void RemoteControl::dataReceive() {
         }
         this->setWorkMode();
         this->pack_recv_times_.pushTimestamp(this->p_data_download_->pack_handle);
+        if (!this->receive_switch_) {
+            continue;
+        }
         this->p_data_download_mutex_->lock();
         this->p_data_download_->dataDistribution();
         this->p_data_download_mutex_->unlock();
@@ -94,6 +98,17 @@ void RemoteControl::setWorkMode() {
 
 uint8_t RemoteControl::getWorkMode() {
     return this->work_mode_;
+}
+
+RemoteControl::RemoteControl() {
+    this->work_mode_ = DEFAULT_WORK_MODE;
+}
+
+void RemoteControl::setHandles() {
+    this->udp_recv_handle_ = this->udp_recv_times_.time_handle.newHandle("udp receive from remote");
+    this->udp_recv_correct_handle_ = this->udp_recv_times_.time_handle.newHandle("udp receive correct from remote");
+    this->pack1_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("pack 1 receive from remote");
+    this->pack2_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("pack 2 receive from remote");
 }
 
 }

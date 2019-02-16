@@ -60,7 +60,7 @@ struct yaml_params_type {
 
 enum class work_mode {
     ERROR = 0,
-    autonoumous = 1,
+    autonomous = 1,
     remote = 2
 };
 

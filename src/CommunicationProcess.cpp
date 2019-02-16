@@ -30,7 +30,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
                                                       boost::bind(&CommunicationProcess::udpSend, this));
     }
     if (this->yaml_params_.upper_layer_send || this->yaml_params_.upper_layer_receive) {
-        this->autonomousControl_.init(node_handle, private_node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_);
+        this->autonomousControl_.init(node_handle, private_node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_, &this->data_download_mutex_);
         if (this->yaml_params_.upper_layer_send) {
             this->autonomousControl_.send_init();
         }
@@ -190,7 +190,7 @@ void CommunicationProcess::timeCheck() {
     }
 
     switch ((int)this->work_mode_) {
-        case (int)work_mode::autonoumous: {
+        case (int)work_mode::autonomous: {
             if (this->yaml_params_.upper_layer_receive) {
                 msg_update_check = this->autonomousControl_.rosmsgUpdateCheck();
             }
@@ -218,8 +218,20 @@ void CommunicationProcess::timeCheck() {
     }
 
     if (udp_recv_check && msg_update_check && remote_update_check) {
-        //// todo
-        ROS_INFO_STREAM_THROTTLE(1, "work well");
+        switch ((int)this->work_mode_) {
+            case (int)work_mode::autonomous: {
+                ROS_INFO_STREAM_THROTTLE(1, "work well: autonomous");
+                break;
+            }
+            case (int)work_mode::remote: {
+                ROS_INFO_STREAM_THROTTLE(1, "work well: remote");
+                break;
+            }
+            default: {
+                LOG_ERROR << "work mode logic error";
+                break;
+            }
+        }
     }
 }
 
@@ -323,7 +335,7 @@ bool CommunicationProcess::modeSelect() {
             break;
         }
         case 2: {
-            this->work_mode_ = work_mode::autonoumous;
+            this->work_mode_ = work_mode::autonomous;
             break;
         }
         default: {

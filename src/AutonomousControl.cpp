@@ -3,12 +3,14 @@
 namespace ecu_communication {
 
 void AutonomousControl::init(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle,
-                             DataDownload *p_data_download, DataUpload *p_data_upload, std::mutex *p_data_upload_mutex) {
+                             DataDownload *p_data_download, DataUpload *p_data_upload,
+                             std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex) {
     this->nh_ = node_handle;
     this->private_nh_ = private_node_handle;
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
     this->p_data_upload_mutex_ = p_data_upload_mutex;
+    this->p_data_download_mutex_ = p_data_download_mutex;
     this->setHandles();
 }
 
