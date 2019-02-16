@@ -29,6 +29,8 @@
 #include "AutonomousControl.hpp"
 #include "RemoteControl.hpp"
 
+#include "Transform6t.hpp"
+
 namespace ecu_communication {
 
 

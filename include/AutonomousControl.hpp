@@ -17,6 +17,8 @@
 #include "DataUpload.hpp"
 #include "DataDownload.hpp"
 
+#include "Transform6t.hpp"
+
 namespace ecu_communication {
 
 class AutonomousControl {
@@ -53,6 +55,8 @@ public:
     void reportControlData();
     bool rosmsgUpdateCheck();
     void speedCb(speed_ctrl_msgs::speed_ctrl msg);
+
+    Transform6t transform6t;
 };
 
 }

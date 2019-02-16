@@ -62,16 +62,57 @@ void CommunicationProcess::udpReceive() {
     while (ros::ok()) {
         this->udp_server_.process();
         this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
-        if (this->udp_server_.get_recv_len() != 14) {
-            if (this->udp_server_.get_recv_len() > 0) {
-                LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len() << ". raw data as following:";
-                this->sLog_.logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
-            } else {
-                LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len();
+
+        //// todo this block is test code on 6t
+        {
+            if (this->udp_server_.get_recv_len() != 13) {
+                if (this->udp_server_.get_recv_len() > 0) {
+                    LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len()
+                              << ". raw data as following:";
+                    this->sLog_.logUint8Array((char *) this->udp_server_.buffer, this->udp_server_.get_recv_len(),
+                                              google::ERROR);
+                } else {
+                    LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len();
+                }
+                continue;
             }
-            continue;
+            this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
+
+            static Transform6t transform6t;
+            if (!transform6t.receiveCheck((char *) this->udp_server_.buffer)) {
+                LOG_ERROR << "ecu receive ID error, receive raw data as following:";
+                this->sLog_.logUint8Array((char *) this->udp_server_.buffer, this->udp_server_.get_recv_len(),
+                                          google::ERROR);
+                continue;
+            }
+
+            this->udp_server_.buffer[0] = 0x00;
+            this->udp_server_.buffer[1] = 0x00;
+            this->udp_server_.buffer[2] = 0x00;
+            this->udp_server_.buffer[3] = 0xF1;
+            this->udp_server_.buffer[4] = 0x01;
+            this->udp_server_.buffer[5] = 0x08;
+            this->udp_server_.buffer[6] = transform6t.receive_6t.pack[5];
+            this->udp_server_.buffer[7] = transform6t.receive_6t.pack[6];
+            this->udp_server_.buffer[8] = 0x00;
+            this->udp_server_.buffer[9] = 0x00;
+            this->udp_server_.buffer[10] = transform6t.receive_6t.pack[7];
+            this->udp_server_.buffer[11] = transform6t.receive_6t.pack[8];
+            this->udp_server_.buffer[12] = 0x00;
+            this->udp_server_.buffer[13] = 0x00;
         }
-        this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
+
+        //// todo comment for test on 6t
+//        if (this->udp_server_.get_recv_len() != 14) {
+//            if (this->udp_server_.get_recv_len() > 0) {
+//                LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len() << ". raw data as following:";
+//                this->sLog_.logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
+//            } else {
+//                LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len();
+//            }
+//            continue;
+//        }
+//        this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
         if (!this->data_upload_.dataIDCheck((char *)this->udp_server_.buffer)) {
             LOG_ERROR << "ecu receive ID error, receive raw data as following:";
             this->sLog_.logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
@@ -104,6 +145,13 @@ void CommunicationProcess::udpSend() {
     if (!(this->udp_send_switch_ || this->yaml_params_.send_default_when_no_msg || this->params_.fake_issue)) {
         return;
     }
+
+    //// todo this block is test code on 6t
+    {
+        this->udp_client_.process(this->autonomousControl_.transform6t.send_6t.pack, 13);
+        return;
+    }
+
     this->udp_pack_handle_.setID(this->udp_send_proportion_.stepping());
     if (!this->udp_send_switch_) {
         this->data_download_.init();
@@ -263,7 +311,6 @@ void CommunicationProcess::paramsInit() {
     }
 
     this->udp_send_switch_ = false;
-//    this->ros_publish_switch_ = false;
     //// todo log params
 }
 
@@ -272,7 +319,6 @@ CommunicationProcess::~CommunicationProcess() {
     this->data_process_timer_.stop();
 
     this->udp_send_switch_ = false;
-//    this->ros_publish_switch_ = false;
     this->yaml_params_.reconfig = false;
     this->params_.fake_issue = false;
     this->yaml_params_.send_default_when_no_msg = false;
