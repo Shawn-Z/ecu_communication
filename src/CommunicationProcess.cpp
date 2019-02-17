@@ -118,17 +118,17 @@ void CommunicationProcess::udpReceive() {
             this->sLog_.logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
             continue;
         }
-        this->data_upload_.recv_rawdata.data.clear();
-        this->data_upload_.recv_rawdata.data.assign(this->udp_server_.buffer, this->udp_server_.buffer + this->udp_server_.get_recv_len());
         this->pack_recv_times_.pushTimestamp(this->data_upload_.pack_handle);
         this->data_upload_mutex_.lock();
         this->data_upload_.dataDistribution();
         this->data_upload_mutex_.unlock();
         if (this->yaml_params_.log_rawdata) {
             LOG_INFO << "UDP receive raw data log";
-            this->sLog_.logUint8Vector(this->data_upload_.recv_rawdata.data, google::INFO);
+            this->sLog_.logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
         }
         if (this->yaml_params_.publish_rawdata) {
+            this->data_upload_.recv_rawdata.data.clear();
+            this->data_upload_.recv_rawdata.data.assign(this->udp_server_.buffer, this->udp_server_.buffer + this->udp_server_.get_recv_len());
             this->udp_recv_rawdata_publisher_.publish(this->data_upload_.recv_rawdata);
         }
     }
@@ -154,10 +154,14 @@ void CommunicationProcess::udpSend() {
 
     this->udp_pack_handle_.setID(this->udp_send_proportion_.stepping());
     if (!this->udp_send_switch_) {
+        this->data_download_mutex_.lock();
         this->data_download_.init();
+        this->data_download_mutex_.unlock();
     }
     if (this->params_.fake_issue) {
+        this->data_download_mutex_.lock();
         fake_issue();
+        this->data_download_mutex_.unlock();
     }
     //// todo add safe check
     this->data_download_mutex_.lock();
@@ -168,13 +172,13 @@ void CommunicationProcess::udpSend() {
         this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
         return;
     }
-    this->data_download_.send_rawdata.data.clear();
-    this->data_download_.send_rawdata.data.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + this->udp_client_.get_send_len());
     if (this->yaml_params_.log_rawdata) {
         LOG_INFO << "UDP send raw data log";
-        this->sLog_.logUint8Vector(this->data_download_.send_rawdata.data, google::INFO);
+        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
     }
     if (this->yaml_params_.publish_rawdata) {
+        this->data_download_.send_rawdata.data.clear();
+        this->data_download_.send_rawdata.data.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + this->udp_client_.get_send_len());
         this->udp_send_rawdata_publisher_.publish(this->data_download_.send_rawdata);
     }
 }
@@ -315,6 +319,7 @@ void CommunicationProcess::paramsInit() {
 }
 
 CommunicationProcess::~CommunicationProcess() {
+    //// todo
     this->time_check_timer_.stop();
     this->data_process_timer_.stop();
 

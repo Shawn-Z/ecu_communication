@@ -7,7 +7,7 @@
 #include <mutex>
 #include <vector>
 
-#include "speed_ctrl_msgs/speed_ctrl.h"
+#include "three_one_msgs/control.h"
 
 #include "STime.hpp"
 #include "SLog.hpp"
@@ -54,7 +54,7 @@ public:
     void dataProcess();
     void reportControlData();
     bool rosmsgUpdateCheck();
-    void speedCb(speed_ctrl_msgs::speed_ctrl msg);
+    void speedCb(three_one_msgs::control_speed msg);
 
     Transform6t transform6t;
 };

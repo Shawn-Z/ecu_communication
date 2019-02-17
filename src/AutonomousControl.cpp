@@ -15,7 +15,7 @@ void AutonomousControl::init(ros::NodeHandle node_handle, ros::NodeHandle privat
 }
 
 void AutonomousControl::receive_init() {
-    this->speed_sub_ = this->nh_.subscribe<speed_ctrl_msgs::speed_ctrl>("/speed_plan", 1, &AutonomousControl::speedCb, this);
+    this->speed_sub_ = this->nh_.subscribe<three_one_msgs::control_speed>("/speed_plan", 1, &AutonomousControl::speedCb, this);
 }
 
 void AutonomousControl::send_init() {
@@ -36,7 +36,9 @@ void AutonomousControl::dataProcess() {
     }
     this->p_data_upload_->dataToMsg();
     this->p_data_upload_mutex_->unlock();
+    this->p_data_download_mutex_->lock();
     this->reportControlData();
+    this->p_data_download_mutex_->unlock();
     publisher.publish(this->p_data_upload_->report);
 }
 
@@ -75,12 +77,12 @@ void AutonomousControl::reportControlData() {
     this->p_data_upload_->report.control.fix_two_chamber_valve = this->p_data_download_->pack_two.fix_two_chamber_valve;
 }
 
-void AutonomousControl::speedCb(speed_ctrl_msgs::speed_ctrl msg) {
+void AutonomousControl::speedCb(three_one_msgs::control_speed msg) {
     if (!this->receive_switch_) {
         return;
     }
-    this->p_data_download_->pack_one.expect_vehicle_speed = (uint8_t)(msg.issue_v * 10 + 0.001);
-    this->p_data_download_->pack_one.vehicle_gear = msg.direction;
+    this->p_data_download_->pack_one.expect_vehicle_speed = (uint8_t)round(msg.speed * 10.0);
+    this->p_data_download_->pack_one.vehicle_gear = msg.gear;
     this->msg_update_times.pushTimestamp(this->speed_sub_handle_);
 }
 

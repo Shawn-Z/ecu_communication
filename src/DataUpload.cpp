@@ -208,6 +208,7 @@ void DataUpload::dataToMsg() {
     this->report.motion.right_wheel_speed =
             ((this->pack_two.right_motor_gear == (uint8_t)three_one_feedback::right_wheel_rotate ::forward)? 1: -1) *
             this->pack_two.right_motor_actual_speed * this->rpm_to_speed;
+    this->report.motion.vehicle_speed = 0.5 * (this->report.motion.left_wheel_speed + this->report.motion.right_wheel_speed);
 
     this->report.torque.left = this->pack_five.left_torque;
     this->report.torque.right = this->pack_six.right_torque;
