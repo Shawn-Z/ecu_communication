@@ -221,7 +221,7 @@ void DataUpload::dataToMsg() {
 
     this->report.vehicle_state.error_code = this->pack_six.error_code;
     this->report.vehicle_state.vertical_wall_status = this->pack_six.vertical_wall_status;
-    this->report.vehicle_state.vehicle_height = this->pack_seven.vehical_height;
+    this->report.vehicle_state.vehicle_height = this->pack_seven.vehicle_height;
     this->report.vehicle_state.tailgate_state = this->pack_two.tailgate_state;
     this->report.vehicle_state.SOC = this->pack_two.SOC;
     this->report.vehicle_state.vehicle_roll = this->pack_five.vehicle_roll;

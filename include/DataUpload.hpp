@@ -110,7 +110,7 @@ union data_upload_pack_seven_type {
         uint8_t valid_data_mark;
         uint8_t valid_data_length;
         uint32_t right_pulse;
-        uint8_t vehical_height;
+        uint8_t vehicle_height;
         uint8_t park_status;
         uint8_t reserve_bytes1[2];
     };
