@@ -6,6 +6,26 @@ namespace ecu_communication {
 CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle)
     : reconfigSrv_{private_node_handle}, params_{private_node_handle} {
 
+//
+//    uint8_t haha[4] = {255, 254 ,253, 225};
+//    ROS_WARN_STREAM((int)(uint8_t)this->remoteControl_.remoteReceive_.receiveIDCheck((char *)haha, 2));
+//
+//    ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteReceive_.pack_one));
+//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteReceive_.pack_two));
+//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_fuck));
+//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_one));
+//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_two));
+//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_three));
+//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_four));
+//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_five));
+//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_six));
+//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_seven));
+//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_eight));
+//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_eight.pack));
+
+
+
+
     this->nh_ = node_handle;
     this->private_nh_ = private_node_handle;
 

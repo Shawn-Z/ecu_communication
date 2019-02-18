@@ -4,13 +4,17 @@
 #define ECU_COMMUNICATION_REMOTERECEIVE_HPP
 
 #include <cstdint>
+#include <cstring>
+
+#include "DataDownload.hpp"
 
 namespace ecu_communication {
 
 #pragma pack(1)
     union remote_receive_pack_one_type {
         struct {
-            uint16_t data_ID;
+            uint8_t ID_one;
+            uint8_t ID_two;
             int32_t steer_level;
             int32_t throttle;
             uint16_t thousand_times_curvature;
@@ -39,12 +43,13 @@ namespace ecu_communication {
                 uint8_t functions_two;
             };
         };
-        uint8_t result_data[12345];
+        uint8_t result_data[2];
     };
 
     union remote_receive__pack_two_type {
         struct {
-            uint16_t data_ID;
+            uint8_t ID_one;
+            uint8_t ID_two;
             union {
                 struct {
                     uint8_t suspension_select: 4;
@@ -76,20 +81,23 @@ namespace ecu_communication {
             uint8_t reserve_bytes1[3];
             uint8_t work_mode;
         };
-        uint8_t result_data[12345];
+        uint8_t result_data[2];
     };
 
-#ifndef ID_CALCULATE
-#define ID_CALCULATE
-union ID_calculate_type {
-    uint8_t data[4];
-    uint32_t result;
-};
-#endif
+
 
 #pragma pack()
 
     class RemoteReceive {
+    public:
+        remote_receive_pack_one_type pack_one;
+        remote_receive__pack_two_type pack_two;
+
+        uint8_t work_mode;
+
+        shawn::handle pack_handle;
+
+        bool receiveIDCheck(char *p_recv_raw_data, uint16_t p_recv_len);
 
     };
 

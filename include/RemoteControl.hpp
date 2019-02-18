@@ -14,6 +14,9 @@
 #include "DataDownload.hpp"
 #include "DataUpload.hpp"
 
+#include "RemoteReceive.hpp"
+#include "RemoteSend.hpp"
+
 namespace ecu_communication {
 
 class RemoteControl {
@@ -63,6 +66,10 @@ public:
     RemoteControl();
 
     void setHandles();
+
+
+    RemoteReceive remoteReceive_;
+    RemoteSend remoteSend_;
 };
 
 }

@@ -36,23 +36,25 @@ void RemoteControl::dataReceive() {
 //        }
         this->udp_server_.process();
         this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
-        if (this->udp_server_.get_recv_len() != 14) {
-            if (this->udp_server_.get_recv_len() > 0) {
-                LOG_ERROR << "remote receive length error: " << this->udp_server_.get_recv_len() << ". raw data as following:";
-                this->p_log_->logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
-            } else {
-                LOG_ERROR << "remote receive length error: " << this->udp_server_.get_recv_len();
-            }
+
+
+
+        if ((this->udp_server_.get_recv_len() > 512) || (this->udp_server_.get_recv_len() < 1)) {
+            LOG_ERROR << "remote receive length error: " << this->udp_server_.get_recv_len();
             continue;
         }
         this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
-        if (!this->p_data_download_->dataIDCheck((char *)this->udp_server_.buffer)) {
+
+
+
+        if (!this->remoteReceive_.receiveIDCheck((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len());) {
             LOG_ERROR << "dataID for remote illegal, receive raw data as following:";
             this->p_log_->logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
             continue;
         }
-        this->setWorkMode();
-        this->pack_recv_times_.pushTimestamp(this->p_data_download_->pack_handle);
+        this->pack_recv_times_.pushTimestamp(this->remoteReceive_.pack_handle);
+
+
         if (!this->receive_switch_) {
             continue;
         }
@@ -90,14 +92,10 @@ bool RemoteControl::time_check() {
     return (udp_recv_duration_check && udp_recv_till_now_check && pack_recv_duration_check && pack_recv_till_now_check);
 }
 
-void RemoteControl::setWorkMode() {
-    if (1 == this->p_data_download_->pack_handle.getID()) {
-        this->work_mode_ = this->p_data_download_->recv_raw_data[13];
-    }
-}
+
 
 uint8_t RemoteControl::getWorkMode() {
-    return this->work_mode_;
+    return this->remoteReceive_.work_mode;
 }
 
 RemoteControl::RemoteControl() {
@@ -109,6 +107,12 @@ void RemoteControl::setHandles() {
     this->udp_recv_correct_handle_ = this->udp_recv_times_.time_handle.newHandle("udp receive correct from remote");
     this->pack1_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("pack 1 receive from remote");
     this->pack2_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("pack 2 receive from remote");
+}
+
+void RemoteControl::setWorkMode() {
+    if (this->remoteReceive_.pack_handle.getID() == 1) {
+        this->work_mode_ = this->udp_server_.buffer[9];
+    }
 }
 
 }
