@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <cmath>
+#include "DataUpload.hpp"
 
 // 1000 70 200 200 200 200 200 200 200
 // 1    14 5   5   5   5   5   5   5     50
@@ -41,7 +42,7 @@ union remote_send_pack_one_type {
         uint8_t error_code;
         uint16_t left_wheel_expect_speed;
         uint16_t right_wheel_expect_speed;
-        uint8_t vehical_height;
+        uint8_t vehicle_height;
         double_t latitude;
         double_t longitude;
         int32_t altitude;
@@ -88,8 +89,6 @@ union remote_send_pack_four_type {
     struct {
         uint8_t ID_one;
         uint8_t ID_two;
-        uint8_t valid_data_mark;
-        uint8_t valid_data_length;
         uint8_t left_one_cylinder_position;
         uint8_t left_two_cylinder_position;
         uint8_t left_three_cylinder_position;
@@ -106,8 +105,6 @@ union remote_send_pack_five_type {
     struct {
         uint8_t ID_one;
         uint8_t ID_two;
-        uint8_t valid_data_mark;
-        uint8_t valid_data_length;
         uint8_t left_one_cylinder_pressure;
         uint8_t left_two_cylinder_pressure;
         uint8_t left_three_cylinder_pressure;
@@ -124,8 +121,6 @@ union remote_send_pack_six_type {
     struct {
         uint8_t ID_one;
         uint8_t ID_two;
-        uint8_t valid_data_mark;
-        uint8_t valid_data_length;
         uint32_t mileage;
         uint8_t vehicle_roll;
         uint8_t vehicle_pitch;
@@ -138,8 +133,6 @@ union remote_send_pack_seven_type {
     struct {
         uint8_t ID_one;
         uint8_t ID_two;
-        uint8_t valid_data_mark;
-        uint8_t valid_data_length;
         int16_t right_torque;
         uint8_t vertical_wall_status;
         uint8_t error_code;
@@ -152,8 +145,6 @@ union remote_send_pack_eight_type {
     struct {
         uint8_t ID_one;
         uint8_t ID_two;
-        uint8_t valid_data_mark;
-        uint8_t valid_data_length;
         uint32_t right_pulse;
         uint8_t vehicle_height;
         uint8_t park_status;
@@ -175,6 +166,12 @@ union remote_send_pack_eight_type {
         remote_send_pack_six_type pack_six;
         remote_send_pack_seven_type pack_seven;
         remote_send_pack_eight_type pack_eight;
+
+        size_t prepareSend(DataUpload *p_data_upload, uint8_t *p_work_mode);
+
+        shawn::handle pack_handle;
+
+        uint8_t data_to_send[2048];
     };
 
 }

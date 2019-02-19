@@ -36,30 +36,25 @@ void RemoteControl::dataReceive() {
 //        }
         this->udp_server_.process();
         this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
-
-
-
         if ((this->udp_server_.get_recv_len() > 512) || (this->udp_server_.get_recv_len() < 1)) {
             LOG_ERROR << "remote receive length error: " << this->udp_server_.get_recv_len();
             continue;
         }
         this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
-
-
-
-        if (!this->remoteReceive_.receiveIDCheck((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len());) {
+        if (!this->remoteReceive_.receiveIDCheck((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len())) {
             LOG_ERROR << "dataID for remote illegal, receive raw data as following:";
             this->p_log_->logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
             continue;
         }
         this->pack_recv_times_.pushTimestamp(this->remoteReceive_.pack_handle);
-
-
+        this->p_data_download_mutex_->lock();
+        this->setWorkMode();
+        this->p_data_download_mutex_->unlock();
         if (!this->receive_switch_) {
             continue;
         }
         this->p_data_download_mutex_->lock();
-        this->p_data_download_->dataDistribution();
+        this->remoteReceive_.dataDistribution((char *)this->udp_server_.buffer, this->p_data_download_);
         this->p_data_download_mutex_->unlock();
     }
 }
@@ -68,13 +63,41 @@ void RemoteControl::dataSend() {
     if (this->send_switch_) {
         return;
     }
-    this->udp_pack_handle_.setID(this->udp_send_proportion_.stepping());
+    static size_t counter = 0;
+    ++counter;
+    if ((counter % 100) == 0) {
+        this->remoteSend_.pack_handle.setID(0);
+    }
+    if ((counter % 7) == 0) {
+        this->remoteSend_.pack_handle.setID(1);
+    }
+    if ((counter % 20) == 2) {
+        this->remoteSend_.pack_handle.setID(2);
+    }
+    if ((counter % 20) == 4) {
+        this->remoteSend_.pack_handle.setID(3);
+    }
+    if ((counter % 20) == 6) {
+        this->remoteSend_.pack_handle.setID(4);
+    }
+    if ((counter % 20) == 8) {
+        this->remoteSend_.pack_handle.setID(5);
+    }
+    if ((counter % 20) == 11) {
+        this->remoteSend_.pack_handle.setID(6);
+    }
+    if ((counter % 20) == 14) {
+        this->remoteSend_.pack_handle.setID(7);
+    }
+    if ((counter % 20) == 17) {
+        this->remoteSend_.pack_handle.setID(8);
+    }
     this->p_data_upload_mutex_->lock();
-    this->p_data_upload_->prepareSend(this->udp_pack_handle_);
+    size_t send_len = this->remoteSend_.prepareSend(this->p_data_upload_, this->p_work_mode_);
     this->p_data_upload_mutex_->unlock();
-    if (!this->udp_client_.process(this->p_data_upload_->data_to_send, sizeof(this->p_data_upload_->data_to_send))) {
+    if (!this->udp_client_.process(this->remoteSend_.data_to_send, send_len)) {
         LOG_ERROR << "remote send length error: " << this->udp_client_.get_send_len() << ". raw data as following:";
-        this->p_log_->logUint8Array((char *)this->p_data_upload_->data_to_send, sizeof(this->p_data_upload_->data_to_send), google::ERROR);
+        this->p_log_->logUint8Array((char *)this->remoteSend_.data_to_send, send_len, google::ERROR);
     }
 }
 

@@ -99,6 +99,8 @@ namespace ecu_communication {
 
         bool receiveIDCheck(char *p_recv_raw_data, uint16_t p_recv_len);
 
+        void dataDistribution(char *p_recv_raw_data, DataDownload *p_data_download);
+
     };
 
 }

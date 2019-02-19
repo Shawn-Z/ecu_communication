@@ -28,6 +28,8 @@ public:
     uint8_t work_mode_;
     shawn::SLog *p_log_;
 
+    uint8_t *p_work_mode_;
+
     ros::Timer data_send_timer_;
     ros::NodeHandle nh_;
 
