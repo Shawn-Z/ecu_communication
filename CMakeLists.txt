@@ -36,7 +36,7 @@ include_directories(
 add_executable(ecu_communication
     src/DataUpload.cpp
     src/DataDownload.cpp
-    src/UDPServer.cpp
+        src/UDPCommunication.cpp
     src/UDPClient.cpp
     src/CommunicationProcess.cpp
     src/ECUCommunication.cpp

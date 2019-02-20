@@ -9,7 +9,7 @@
 #include "SLog.hpp"
 
 #include "DEFINEs.hpp"
-#include "UDPServer.hpp"
+#include "UDPCommunication.hpp"
 #include "UDPClient.hpp"
 #include "DataDownload.hpp"
 #include "DataUpload.hpp"
@@ -36,7 +36,7 @@ public:
     //// UDP communication data and variables
     uint16_t server_port_;
 
-    UDPServer udp_server_;
+    UDPCommunication udp_server_;
     UDPClient udp_client_;
 
     shawn::SProportion udp_send_proportion_;

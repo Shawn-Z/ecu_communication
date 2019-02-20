@@ -23,7 +23,7 @@
 
 #include "ThreeOne.hpp"
 #include "UDPClient.hpp"
-#include "UDPServer.hpp"
+#include "UDPCommunication.hpp"
 #include "DataUpload.hpp"
 #include "DataDownload.hpp"
 #include "AutonomousControl.hpp"
@@ -111,7 +111,7 @@ public:
 //    bool ros_publish_switch_;
 
     //// UDP communication
-    UDPServer udp_server_;
+    UDPCommunication udp_server_;
     UDPClient udp_client_;
     std::thread udp_receive_thread;
     shawn::SProportion udp_send_proportion_;

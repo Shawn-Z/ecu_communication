@@ -34,7 +34,7 @@ void RemoteControl::dataReceive() {
 //        if (!this->receive_switch_) {
 //            continue;
 //        }
-        this->udp_server_.process();
+        this->udp_server_.recv();
         this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
         if ((this->udp_server_.get_recv_len() > 512) || (this->udp_server_.get_recv_len() < 1)) {
             LOG_ERROR << "remote receive length error: " << this->udp_server_.get_recv_len();

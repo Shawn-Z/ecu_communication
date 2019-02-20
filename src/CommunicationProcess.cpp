@@ -80,7 +80,7 @@ void CommunicationProcess::udpReceive() {
         ROS_ERROR_STREAM("UDP RECEIVE INIT FAILURE, KEEP TRYING!");
     }
     while (ros::ok()) {
-        this->udp_server_.process();
+        this->udp_server_.recv();
         this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
 
         //// todo this block is test code on 6t
