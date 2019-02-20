@@ -142,6 +142,7 @@ namespace ecu_communication {
                 break;
             }
         }
+        return send_len;
     }
 
 }

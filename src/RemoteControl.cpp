@@ -107,10 +107,10 @@ bool RemoteControl::time_check() {
     bool pack_recv_duration_check = true;
     bool pack_recv_till_now_check = true;
     //// todo modify parameter of check
-    udp_recv_duration_check = this->udp_recv_times_.checkTimestampsDuration(-1, -1);
-    udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, -1);
-    pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(-1, -1);
-    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
+//    udp_recv_duration_check = this->udp_recv_times_.checkTimestampsDuration(-1, -1);
+//    udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, -1);
+//    pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(-1, -1);
+//    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
 
     return (udp_recv_duration_check && udp_recv_till_now_check && pack_recv_duration_check && pack_recv_till_now_check);
 }
@@ -118,7 +118,7 @@ bool RemoteControl::time_check() {
 
 
 uint8_t RemoteControl::getWorkMode() {
-    return this->remoteReceive_.work_mode;
+    return this->work_mode_;
 }
 
 RemoteControl::RemoteControl() {

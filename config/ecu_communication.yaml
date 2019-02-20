@@ -1,7 +1,7 @@
 upper_layer_send: true
 upper_layer_receive: false
 lower_layer_send: true
-lower_layer_receive: true
+lower_layer_receive: false
 remote_receive: true
 remote_send: true
 
@@ -10,8 +10,8 @@ ecu_port: 8181
 udp_server_port: 8181
 
 remote_ip: "172.16.16.168"
-remote_port: 8182
-remote_server_port: 8182
+remote_port: 13020
+remote_server_port: 13020
 
 reconfig: true
 send_default_when_no_msg: false

@@ -12,6 +12,6 @@
 #define LOG_FATAL LOG(FATAL)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
 #define FIXED std::setiosflags(std::ios::fixed)<<
 
-#define DEFAULT_WORK_MODE 0
+#define DEFAULT_WORK_MODE 1
 
 #endif //ECU_COMMUNICATION_DEFINES_HPP

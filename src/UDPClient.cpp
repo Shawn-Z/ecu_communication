@@ -6,6 +6,7 @@ bool UDPClient::init(const char *ip_send_to, uint16_t port_send_to) {
     //// todo catch the error if init failure
     //// todo check ip_send_to and port_send_to first, the same for server
     this->client_sockfd_ = socket(AF_INET, SOCK_DGRAM, 0);
+    this->server_ip_.sin_port = 13020;
     if (this->client_sockfd_ < 0) {
         this->error = udp_client_error_type::get_client_sockfd_error;
         return false;
