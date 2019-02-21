@@ -8,11 +8,9 @@
 #include "three_one_msgs/rawdata_recv.h"
 #include "SHandle.hpp"
 #include "ThreeOne.hpp"
+#include "DEFINEs.hpp"
 
 namespace ecu_communication {
-
-#define REDUCTION_RATIO 17
-#define TIRE_RADIUS 0.348 //m
 
 #pragma pack(1)
 union data_upload_pack_one_type {
@@ -144,8 +142,6 @@ public:
     three_one_msgs::report report;
     three_one_msgs::rawdata_recv recv_rawdata;
 
-    double_t rpm_to_speed;
-    double_t one_pulse_distance;
 
     DataUpload();
     void dataDistribution();

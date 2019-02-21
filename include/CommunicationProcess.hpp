@@ -11,7 +11,6 @@
 #include <dynamic_reconfigure/server.h>
 #include "ecu_communication/ecu_communicationParameters.h"
 
-#include "three_one_msgs/report.h"
 #include "three_one_msgs/rawdata_recv.h"
 #include "three_one_msgs/rawdata_send.h"
 
@@ -20,7 +19,6 @@
 #include "SProportion.hpp"
 
 #include "DEFINEs.hpp"
-
 #include "ThreeOne.hpp"
 #include "UDPCommunication.hpp"
 #include "DataUpload.hpp"
@@ -32,13 +30,13 @@
 
 namespace ecu_communication {
 
-
-
 struct yaml_params_type {
     bool upper_layer_send;
     bool upper_layer_receive;
     bool lower_layer_send;
     bool lower_layer_receive;
+    bool remote_receive;
+    bool remote_send;
 
     std::string ecu_local_ip;
     int ecu_local_port;
@@ -54,12 +52,7 @@ struct yaml_params_type {
     bool send_default_when_no_msg;
     bool log_rawdata;
     bool publish_rawdata;
-
-
-    bool remote_receive;
-    bool remote_send;
 };
-
 
 enum class work_mode {
     ERROR = 0,
@@ -67,14 +60,22 @@ enum class work_mode {
     remote = 2
 };
 
-
 class CommunicationProcess {
 public:
     CommunicationProcess(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle);
     ~CommunicationProcess();
 
-public:
+private:
+    work_mode work_mode_;
+
     shawn::SLog sLog_;
+
+    //// markers
+    bool udp_send_switch_;
+
+    AutonomousControl autonomousControl_;
+    RemoteControl remoteControl_;
+    std::thread remote_receive_thread_;
 
     //// time check
     shawn::STime udp_recv_times_;
@@ -90,15 +91,14 @@ public:
     shawn::handle pack6_recv_handle_;
     shawn::handle pack7_recv_handle_;
 
-    shawn::STime msg_update_times;
 
     //// ROS Variables
     ros::NodeHandle nh_;
     ros::NodeHandle private_nh_;
-    ros::Timer data_process_timer_;
     ros::Timer time_check_timer_;
     ros::Timer udp_send_timer_;
-    ros::Publisher recv_data_publisher_;
+    ros::Timer ros_publish_timer_;
+    ros::Timer remote_send_timer_;
     ros::Publisher udp_recv_rawdata_publisher_;
     ros::Publisher udp_send_rawdata_publisher_;
 
@@ -107,13 +107,9 @@ public:
     dynamic_reconfigure::Server<ecu_communicationConfig> reconfigSrv_;
     yaml_params_type yaml_params_;
 
-    //// markers
-    bool udp_send_switch_;
-//    bool ros_publish_switch_;
 
     //// UDP communication
     UDPCommunication udp_;
-//    UDPClient udp_client_;
     std::thread udp_receive_thread;
     shawn::SProportion udp_send_proportion_;
     shawn::handle udp_pack_handle_;
@@ -124,25 +120,16 @@ public:
     std::mutex data_upload_mutex_;
     std::mutex data_download_mutex_;
 
+    void glogInit();
     void paramsInit();
+    void setTimeCheckHandle();
     void reconfigureRequest(ecu_communicationConfig &config, uint32_t level);
     void udpReceive();
-    void udpSendInit();
     void udpSend();
-    void fake_issue();
     void timeCheck();
     bool udpReceiveCheck();
-    void setTimeCheckHandle();
-    void glogInit();
-
-
-    work_mode work_mode_;
-
     bool modeSelect();
-
-    AutonomousControl autonomousControl_;
-    RemoteControl remoteControl_;
-    std::thread remote_receive_thread_;
+    void fake_issue();
 };
 
 }

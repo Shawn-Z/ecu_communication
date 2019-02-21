@@ -12,7 +12,6 @@
 #include "UDPCommunication.hpp"
 #include "DataDownload.hpp"
 #include "DataUpload.hpp"
-
 #include "RemoteReceive.hpp"
 #include "RemoteSend.hpp"
 
@@ -26,12 +25,12 @@ public:
 
     uint8_t work_mode_;
     shawn::SLog *p_log_;
-
     uint8_t *p_work_mode_;
 
     //// UDP communication data and variables
-
     UDPCommunication udp_;
+    RemoteReceive remoteReceive_;
+    RemoteSend remoteSend_;
 
     DataUpload *p_data_upload_;
     DataDownload *p_data_download_;
@@ -47,20 +46,16 @@ public:
     shawn::handle pack2_recv_handle_;
 
 
-    void init(DataDownload *p_data_download, DataUpload *p_data_upload, std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex, shawn::SLog *p_log);
+    RemoteControl();
+    void init(DataDownload *p_data_download, DataUpload *p_data_upload,
+              std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex,
+              shawn::SLog *p_log, uint8_t *p_work_mode);
+    void setHandles();
     void dataReceive();
     void dataSend();
-    bool time_check();
     void setWorkMode();
     uint8_t getWorkMode();
-
-    RemoteControl();
-
-    void setHandles();
-
-
-    RemoteReceive remoteReceive_;
-    RemoteSend remoteSend_;
+    bool time_check();
 };
 
 }

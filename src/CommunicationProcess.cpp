@@ -11,9 +11,6 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
     this->glogInit();
     this->paramsInit();
-//    while (!this->udp_.init()) {
-//        LOG_ERROR << "udp with ecu init error, keep trying";
-//    }
     this->setTimeCheckHandle();
 
     if (this->yaml_params_.reconfig) {
@@ -23,20 +20,26 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
         this->udp_recv_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::rawdata_recv>("/udp_recv_rawdata", 1);
         this->udp_send_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::rawdata_send>("/udp_send_rawdata", 1);
     }
-//    if (this->yaml_params_.lower_layer_receive) {
-//        this->udp_receive_thread = std::thread(&CommunicationProcess::udpReceive, this);
-//        this->udp_receive_thread.detach();
-//    }
-//    if (this->yaml_params_.lower_layer_send) {
-//        this->udp_send_proportion_.inputProportion(1, 1);
-//        this->udp_send_timer_ = this->nh_.createTimer(ros::Duration(UDP_SEND_PERIOD),
-//                                                      boost::bind(&CommunicationProcess::udpSend, this));
-//    }
+
+    if (this->yaml_params_.lower_layer_receive || this->yaml_params_.lower_layer_send) {
+        while (!this->udp_.init()) {
+            ROS_ERROR_STREAM("udp with ecu init error, keep trying");
+        }
+        if (this->yaml_params_.lower_layer_receive) {
+            this->udp_receive_thread = std::thread(&CommunicationProcess::udpReceive, this);
+            this->udp_receive_thread.detach();
+        }
+        if (this->yaml_params_.lower_layer_send) {
+            this->udp_send_proportion_.inputProportion(1, 1);
+            this->udp_send_timer_ = this->nh_.createTimer(ros::Duration(UDP_SEND_PERIOD),
+                                                          boost::bind(&CommunicationProcess::udpSend, this));
+        }
+    }
 
     if (this->yaml_params_.upper_layer_send || this->yaml_params_.upper_layer_receive) {
-        this->autonomousControl_.init(node_handle, private_node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_, &this->data_download_mutex_);
+        this->autonomousControl_.init(node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_, &this->data_download_mutex_);
         if (this->yaml_params_.upper_layer_send) {
-            this->nh_.createTimer(ros::Duration(PUBLISH_PERIOD), boost::bind(&AutonomousControl::dataProcess, &this->autonomousControl_));
+            this->ros_publish_timer_ = this->nh_.createTimer(ros::Duration(PUBLISH_PERIOD), boost::bind(&AutonomousControl::dataProcess, &this->autonomousControl_));
         }
         if (this->yaml_params_.upper_layer_receive) {
             this->autonomousControl_.receive_init();
@@ -44,9 +47,9 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
 
     if (this->yaml_params_.remote_send || this->yaml_params_.remote_receive) {
-        this->remoteControl_.init(&this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_);
+        this->remoteControl_.init(&this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_, (uint8_t *)(&this->work_mode_));
         if (this->yaml_params_.remote_send) {
-            this->nh_.createTimer(ros::Duration(REMOTE_SEND_PERIOD), boost::bind(&RemoteControl::dataSend, &this->remoteControl_));
+            this->remote_send_timer_ = this->nh_.createTimer(ros::Duration(REMOTE_SEND_PERIOD), boost::bind(&RemoteControl::dataSend, &this->remoteControl_));
         }
         if (this->yaml_params_.remote_receive) {
             this->remote_receive_thread_ = std::thread(&RemoteControl::dataReceive, &this->remoteControl_);
@@ -56,6 +59,97 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
+}
+
+CommunicationProcess::~CommunicationProcess() {
+    //// todo
+    this->time_check_timer_.stop();
+
+    this->udp_send_switch_ = false;
+    this->yaml_params_.reconfig = false;
+    this->params_.fake_issue = false;
+    this->yaml_params_.send_default_when_no_msg = false;
+
+    //// todo shutdown publisher and subscriber
+    this->udp_recv_rawdata_publisher_.shutdown();
+    this->udp_send_rawdata_publisher_.shutdown();
+
+    LOG_INFO << "program end";
+    LOG_WARN << "program end";
+    LOG_ERROR << "program end";
+    google::ShutdownGoogleLogging();
+}
+
+void CommunicationProcess::glogInit() {
+    this->sLog_.init("ThreeOne", "log_three_one", google::ERROR);
+    LOG_INFO << "glog start";
+    LOG_WARN << "glog start";
+    LOG_ERROR << "glog start";
+}
+
+void CommunicationProcess::paramsInit() {
+    bool tmp_result = true;
+    tmp_result &= this->private_nh_.getParam("upper_layer_send", this->yaml_params_.upper_layer_send);
+    tmp_result &= this->private_nh_.getParam("upper_layer_receive", this->yaml_params_.upper_layer_receive);
+    tmp_result &= this->private_nh_.getParam("lower_layer_send", this->yaml_params_.lower_layer_send);
+    tmp_result &= this->private_nh_.getParam("lower_layer_receive", this->yaml_params_.lower_layer_receive);
+    tmp_result &= this->private_nh_.getParam("remote_receive", this->yaml_params_.remote_receive);
+    tmp_result &= this->private_nh_.getParam("remote_send", this->yaml_params_.remote_send);
+
+    tmp_result &= this->private_nh_.getParam("ecu_local_ip", this->yaml_params_.ecu_local_ip);
+    tmp_result &= this->private_nh_.getParam("ecu_local_port", this->yaml_params_.ecu_local_port);
+    tmp_result &= this->private_nh_.getParam("ecu_remote_ip", this->yaml_params_.ecu_remote_ip);
+    tmp_result &= this->private_nh_.getParam("ecu_remote_port", this->yaml_params_.ecu_remote_port);
+
+    tmp_result &= this->private_nh_.getParam("remote_local_ip", this->yaml_params_.remote_local_ip);
+    tmp_result &= this->private_nh_.getParam("remote_local_port", this->yaml_params_.remote_local_port);
+    tmp_result &= this->private_nh_.getParam("remote_remote_ip", this->yaml_params_.remote_remote_ip);
+    tmp_result &= this->private_nh_.getParam("remote_remote_port", this->yaml_params_.remote_remote_port);
+
+    tmp_result &= this->private_nh_.getParam("reconfig", this->yaml_params_.reconfig);
+    tmp_result &= this->private_nh_.getParam("send_default_when_no_msg", this->yaml_params_.send_default_when_no_msg);
+    tmp_result &= this->private_nh_.getParam("log_rawdata", this->yaml_params_.log_rawdata);
+    tmp_result &= this->private_nh_.getParam("publish_rawdata", this->yaml_params_.publish_rawdata);
+
+    if (!tmp_result) {
+        ROS_ERROR_STREAM("param not retrieved");
+        ros::shutdown();
+    }
+
+    this->udp_.params.local_ip = this->yaml_params_.ecu_local_ip;
+    this->udp_.params.local_port = this->yaml_params_.ecu_local_port;
+    this->udp_.params.remote_ip = this->yaml_params_.ecu_remote_ip;
+    this->udp_.params.remote_port = this->yaml_params_.ecu_remote_port;
+
+    this->remoteControl_.udp_.params.local_ip = this->yaml_params_.remote_local_ip;
+    this->remoteControl_.udp_.params.local_port = this->yaml_params_.remote_local_port;
+    this->remoteControl_.udp_.params.remote_ip = this->yaml_params_.remote_remote_ip;
+    this->remoteControl_.udp_.params.remote_port = this->yaml_params_.remote_remote_port;
+
+    this->udp_send_switch_ = false;
+    //// todo log params
+}
+
+void CommunicationProcess::setTimeCheckHandle() {
+    //// todo modify ros msg update check handle
+    this->udp_recv_handle_ = this->udp_recv_times_.time_handle.newHandle("simple udp receive");
+    this->udp_recv_correct_handle_ = this->udp_recv_times_.time_handle.newHandle("udp receive correct");
+    this->pack1_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 1");
+    this->pack2_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 2");
+    this->pack3_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 3");
+    this->pack4_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 4");
+    this->pack5_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 5");
+    this->pack6_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 6");
+    this->pack7_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 7");
+}
+
+void CommunicationProcess::reconfigureRequest(ecu_communication::ecu_communicationConfig &config, uint32_t level) {
+    if (config.params_lock) {
+        ROS_WARN_STREAM("params locked, not set!");
+        return;
+    }
+    this->params_.fromConfig(config);
+    ROS_WARN_STREAM("params set!");
 }
 
 void CommunicationProcess::udpReceive() {
@@ -142,7 +236,7 @@ void CommunicationProcess::udpSend() {
 
     //// todo this block is test code on 6t
     {
-//        this->udp_client_.process(this->autonomousControl_.transform6t.send_6t.pack, 13);
+        this->udp_.sendToRemote(this->autonomousControl_.transform6t.send_6t.pack, 13);
         return;
     }
 
@@ -161,11 +255,11 @@ void CommunicationProcess::udpSend() {
     this->data_download_mutex_.lock();
     this->data_download_.prepareSend(this->udp_pack_handle_);
     this->data_download_mutex_.unlock();
-//    if (!this->udp_client_.process(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
-//        LOG_ERROR << "UDP send error, send length: " << this->udp_client_.get_send_len() << ". raw data as following:";
-//        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
-//        return;
-//    }
+    if (!this->udp_.sendToRemote(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
+        LOG_ERROR << "UDP send error, send length: " << this->udp_.get_send_len() << ". raw data as following:";
+        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
+        return;
+    }
     if (this->yaml_params_.log_rawdata) {
         LOG_INFO << "UDP send raw data log";
         this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
@@ -175,49 +269,6 @@ void CommunicationProcess::udpSend() {
 //        this->data_download_.send_rawdata.data.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + this->udp_client_.get_send_len());
         this->udp_send_rawdata_publisher_.publish(this->data_download_.send_rawdata);
     }
-}
-
-void CommunicationProcess::reconfigureRequest(ecu_communication::ecu_communicationConfig &config, uint32_t level) {
-    if (config.params_lock) {
-        ROS_WARN_STREAM("params locked, not set!");
-        return;
-    }
-    this->params_.fromConfig(config);
-    ROS_WARN_STREAM("params set!");
-}
-
-void CommunicationProcess::glogInit() {
-    this->sLog_.init("ThreeOne", "log_three_one", google::ERROR);
-    LOG_INFO << "glog start";
-    LOG_WARN << "glog start";
-    LOG_ERROR << "glog start";
-}
-
-void CommunicationProcess::setTimeCheckHandle() {
-    //// todo modify ros msg update check handle
-    this->udp_recv_handle_ = this->udp_recv_times_.time_handle.newHandle("simple udp receive");
-    this->udp_recv_correct_handle_ = this->udp_recv_times_.time_handle.newHandle("udp receive correct");
-    this->pack1_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 1");
-    this->pack2_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 2");
-    this->pack3_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 3");
-    this->pack4_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 4");
-    this->pack5_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 5");
-    this->pack6_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 6");
-    this->pack7_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("udp receive pack 7");
-}
-
-bool CommunicationProcess::udpReceiveCheck() {
-    bool udp_recv_duration_check = true;
-    bool udp_recv_till_now_check = true;
-    bool pack_recv_duration_check = true;
-    bool pack_recv_till_now_check = true;
-    //// todo modify parameter of check
-//    udp_recv_duration_check = this->udp_recv_times_.checkTimestampsDuration(-1, -1);
-//    udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, -1);
-//    pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(-1, -1);
-//    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
-
-    return (udp_recv_duration_check && udp_recv_till_now_check && pack_recv_duration_check && pack_recv_till_now_check);
 }
 
 void CommunicationProcess::timeCheck() {
@@ -281,68 +332,47 @@ void CommunicationProcess::timeCheck() {
     }
 }
 
-void CommunicationProcess::paramsInit() {
-    bool tmp_result = true;
-    tmp_result &= this->private_nh_.getParam("upper_layer_send", this->yaml_params_.upper_layer_send);
-    tmp_result &= this->private_nh_.getParam("upper_layer_receive", this->yaml_params_.upper_layer_receive);
-    tmp_result &= this->private_nh_.getParam("lower_layer_send", this->yaml_params_.lower_layer_send);
-    tmp_result &= this->private_nh_.getParam("lower_layer_receive", this->yaml_params_.lower_layer_receive);
-    tmp_result &= this->private_nh_.getParam("remote_receive", this->yaml_params_.remote_receive);
-    tmp_result &= this->private_nh_.getParam("remote_send", this->yaml_params_.remote_send);
+bool CommunicationProcess::udpReceiveCheck() {
+    bool udp_recv_duration_check = true;
+    bool udp_recv_till_now_check = true;
+    bool pack_recv_duration_check = true;
+    bool pack_recv_till_now_check = true;
+    //// todo modify parameter of check
+//    udp_recv_duration_check = this->udp_recv_times_.checkTimestampsDuration(-1, -1);
+//    udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, -1);
+//    pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(-1, -1);
+//    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
 
-    tmp_result &= this->private_nh_.getParam("ecu_local_ip", this->yaml_params_.ecu_local_ip);
-    tmp_result &= this->private_nh_.getParam("ecu_local_port", this->yaml_params_.ecu_local_port);
-    tmp_result &= this->private_nh_.getParam("ecu_remote_ip", this->yaml_params_.ecu_remote_ip);
-    tmp_result &= this->private_nh_.getParam("ecu_remote_port", this->yaml_params_.ecu_remote_port);
-
-    tmp_result &= this->private_nh_.getParam("remote_local_ip", this->yaml_params_.remote_local_ip);
-    tmp_result &= this->private_nh_.getParam("remote_local_port", this->yaml_params_.remote_local_port);
-    tmp_result &= this->private_nh_.getParam("remote_remote_ip", this->yaml_params_.remote_remote_ip);
-    tmp_result &= this->private_nh_.getParam("remote_remote_port", this->yaml_params_.remote_remote_port);
-
-    tmp_result &= this->private_nh_.getParam("reconfig", this->yaml_params_.reconfig);
-    tmp_result &= this->private_nh_.getParam("send_default_when_no_msg", this->yaml_params_.send_default_when_no_msg);
-    tmp_result &= this->private_nh_.getParam("log_rawdata", this->yaml_params_.log_rawdata);
-    tmp_result &= this->private_nh_.getParam("publish_rawdata", this->yaml_params_.publish_rawdata);
-
-    if (!tmp_result) {
-        ROS_ERROR_STREAM("param not retrieved");
-        ros::shutdown();
-    }
-
-    this->udp_.params.local_ip = this->yaml_params_.ecu_local_ip;
-    this->udp_.params.local_port = this->yaml_params_.ecu_local_port;
-    this->udp_.params.remote_ip = this->yaml_params_.ecu_remote_ip;
-    this->udp_.params.remote_port = this->yaml_params_.ecu_remote_port;
-
-    this->remoteControl_.udp_.params.local_ip = this->yaml_params_.remote_local_ip;
-    this->remoteControl_.udp_.params.local_port = this->yaml_params_.remote_local_port;
-    this->remoteControl_.udp_.params.remote_ip = this->yaml_params_.remote_remote_ip;
-    this->remoteControl_.udp_.params.remote_port = this->yaml_params_.remote_remote_port;
-
-    this->udp_send_switch_ = false;
-    //// todo log params
+    return (udp_recv_duration_check && udp_recv_till_now_check && pack_recv_duration_check && pack_recv_till_now_check);
 }
 
-CommunicationProcess::~CommunicationProcess() {
-    //// todo
-    this->time_check_timer_.stop();
-    this->data_process_timer_.stop();
+bool CommunicationProcess::modeSelect() {
+    bool mode_update_result = true;
+    mode_update_result = this->remoteControl_.time_check();
+    if (!mode_update_result) {
+        this->work_mode_ = work_mode::ERROR;
+        return false;
+    }
 
-    this->udp_send_switch_ = false;
-    this->yaml_params_.reconfig = false;
-    this->params_.fake_issue = false;
-    this->yaml_params_.send_default_when_no_msg = false;
+    this->data_download_mutex_.lock();
+    uint8_t work_mode_got = this->remoteControl_.getWorkMode();
+    this->data_download_mutex_.unlock();
 
-    //// todo shutdown publisher and subscriber
-    this->recv_data_publisher_.shutdown();
-    this->udp_recv_rawdata_publisher_.shutdown();
-    this->udp_send_rawdata_publisher_.shutdown();
-
-    LOG_INFO << "program end";
-    LOG_WARN << "program end";
-    LOG_ERROR << "program end";
-    google::ShutdownGoogleLogging();
+    switch (work_mode_got) {
+        case 1: {
+            this->work_mode_ = work_mode::remote;
+            break;
+        }
+        case 2: {
+            this->work_mode_ = work_mode::autonomous;
+            break;
+        }
+        default: {
+            this->work_mode_ = work_mode::ERROR;
+            break;
+        }
+    }
+    return (this->work_mode_ != work_mode::ERROR);
 }
 
 void CommunicationProcess::fake_issue() {
@@ -376,31 +406,6 @@ void CommunicationProcess::fake_issue() {
         this->data_download_.pack_one.turn_light = this->params_.turn_light;
         this->data_download_.pack_two.tailgate_control = this->params_.tailgate;
     }
-}
-
-bool CommunicationProcess::modeSelect() {
-    bool mode_update_result = true;
-    mode_update_result = this->remoteControl_.time_check();
-    if (!mode_update_result) {
-        this->work_mode_ = work_mode::ERROR;
-        return false;
-    }
-
-    switch (this->remoteControl_.getWorkMode()) {
-        case 1: {
-            this->work_mode_ = work_mode::remote;
-            break;
-        }
-        case 2: {
-            this->work_mode_ = work_mode::autonomous;
-            break;
-        }
-        default: {
-            this->work_mode_ = work_mode::ERROR;
-            break;
-        }
-    }
-    return (this->work_mode_ != work_mode::ERROR);
 }
 
 }

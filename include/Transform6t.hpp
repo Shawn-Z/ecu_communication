@@ -37,10 +37,7 @@ public:
     receive_6t_type receive_6t;
     send_6t_type send_6t;
 
-
-
     bool receiveCheck(char *p_recv_raw_data);
-
 };
 
 }

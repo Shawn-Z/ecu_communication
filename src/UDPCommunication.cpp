@@ -2,9 +2,17 @@
 
 namespace ecu_communication {
 
+UDPCommunication::UDPCommunication() {
+    this->params.local_ip = "0.0.0.0";
+    this->params.local_port = 0;
+    this->params.remote_ip = "0.0.0.0";
+    this->params.remote_port = 0;
+    this->client_addr_got = false;
+}
+
 bool UDPCommunication::init() {
     this->error = udp_server_error_type::none;
-    bzero(this->buffer, BUFFERSIZE);
+    bzero(this->buffer, BUFFER_SIZE);
 
     bzero(&this->local_addr, sizeof(this->local_addr));
     bzero(&this->remote_addr, sizeof(this->remote_addr));
@@ -33,32 +41,15 @@ bool UDPCommunication::init() {
 }
 
 intmax_t UDPCommunication::recv() {
-    bzero(this->buffer, BUFFERSIZE);
+    bzero(this->buffer, BUFFER_SIZE);
     bzero(&this->client_addr, sizeof(this->client_addr));
     //// todo test if need
-    this->buffer[BUFFERSIZE] = 0;
-    this->recv_len = recvfrom(this->sockfd, this->buffer, BUFFERSIZE, 0, (struct sockaddr *)&this->client_addr, &this->client_addr_len);
+    this->buffer[BUFFER_SIZE] = 0;
+    this->recv_len = recvfrom(this->sockfd, this->buffer, BUFFER_SIZE, 0, (struct sockaddr *)&this->client_addr, &this->client_addr_len);
     if (this->recv_len < 1) {
         this->error = udp_server_error_type::recv_error;
     }
-    return this->recv_len;
-}
-
-
-
-const char* UDPCommunication::getClientIP() {
-    //// todo need test
-    return inet_ntoa(this->remote_addr.sin_addr);
-}
-
-UDPCommunication::UDPCommunication() {
-    this->params.local_ip = "0.0.0.0";
-    this->params.local_port = 0;
-    this->params.remote_ip = "0.0.0.0";
-    this->params.remote_port = 0;
-}
-
-intmax_t UDPCommunication::get_recv_len() {
+    this->client_addr_got = true;
     return this->recv_len;
 }
 
@@ -80,8 +71,17 @@ bool UDPCommunication::sendToRemote(uint8_t *buffer, size_t send_len) {
     return true;
 }
 
+intmax_t UDPCommunication::get_recv_len() {
+    return this->recv_len;
+}
+
 intmax_t UDPCommunication::get_send_len() {
     return this->send_len;
+}
+
+const char* UDPCommunication::getClientIP() {
+    //// todo need test
+    return inet_ntoa(this->remote_addr.sin_addr);
 }
 
 }

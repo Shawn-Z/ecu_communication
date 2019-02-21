@@ -15,8 +15,6 @@ DataUpload::DataUpload() {
     this->recv_counter = 0;
     this->recv_rawdata.data.clear();
 
-    this->rpm_to_speed = TIRE_RADIUS * M_PI / REDUCTION_RATIO / 30.0;
-    this->one_pulse_distance = TIRE_RADIUS * M_PI / 17;
 }
 
 bool DataUpload::dataIDCheck(char *p_recv_raw_data) {
@@ -204,10 +202,10 @@ void DataUpload::dataToMsg() {
     this->report.motion.vehicle_speed = this->pack_one.vehicle_speed * 0.1;
     this->report.motion.left_wheel_speed =
             ((this->pack_two.left_motor_gear == (uint8_t)three_one_feedback::left_wheel_rotate::forward)? 1: -1) *
-            this->pack_two.left_motor_actual_speed * this->rpm_to_speed;
+            this->pack_two.left_motor_actual_speed * RPM_TO_SPEED;
     this->report.motion.right_wheel_speed =
             ((this->pack_two.right_motor_gear == (uint8_t)three_one_feedback::right_wheel_rotate ::forward)? 1: -1) *
-            this->pack_two.right_motor_actual_speed * this->rpm_to_speed;
+            this->pack_two.right_motor_actual_speed * RPM_TO_SPEED;
     this->report.motion.vehicle_speed = 0.5 * (this->report.motion.left_wheel_speed + this->report.motion.right_wheel_speed);
 
     this->report.torque.left = this->pack_five.left_torque;
@@ -216,8 +214,8 @@ void DataUpload::dataToMsg() {
     this->report.distance.mileage = this->pack_five.mileage;
     this->report.distance.left_pulse = this->pack_six.left_pulse;
     this->report.distance.right_pulse = this->pack_seven.right_pulse;
-    this->report.distance.left_distance = this->pack_six.left_pulse * this->one_pulse_distance;
-    this->report.distance.right_distance = this->pack_seven.right_pulse * this->one_pulse_distance;
+    this->report.distance.left_distance = this->pack_six.left_pulse * ONE_PULSE_DISTANCE;
+    this->report.distance.right_distance = this->pack_seven.right_pulse * ONE_PULSE_DISTANCE;
 
     this->report.vehicle_state.error_code = this->pack_six.error_code;
     this->report.vehicle_state.vertical_wall_status = this->pack_six.vertical_wall_status;

@@ -7,10 +7,6 @@
 #include <cmath>
 #include "DataUpload.hpp"
 
-// 1000 70 200 200 200 200 200 200 200
-// 1    14 5   5   5   5   5   5   5     50
-
-
 namespace ecu_communication {
 
 #pragma pack(1)
@@ -155,24 +151,23 @@ union remote_send_pack_eight_type {
 
 #pragma pack()
 
-    class RemoteSend {
-    public:
-        remote_send_pack_fuck_type pack_fuck;
-        remote_send_pack_one_type pack_one;
-        remote_send_pack_two_type pack_two;
-        remote_send_pack_three_type pack_three;
-        remote_send_pack_four_type pack_four;
-        remote_send_pack_five_type pack_five;
-        remote_send_pack_six_type pack_six;
-        remote_send_pack_seven_type pack_seven;
-        remote_send_pack_eight_type pack_eight;
+class RemoteSend {
+public:
+    remote_send_pack_fuck_type pack_fuck;
+    remote_send_pack_one_type pack_one;
+    remote_send_pack_two_type pack_two;
+    remote_send_pack_three_type pack_three;
+    remote_send_pack_four_type pack_four;
+    remote_send_pack_five_type pack_five;
+    remote_send_pack_six_type pack_six;
+    remote_send_pack_seven_type pack_seven;
+    remote_send_pack_eight_type pack_eight;
 
-        size_t prepareSend(DataUpload *p_data_upload, uint8_t *p_work_mode);
+    shawn::handle pack_handle;
+    uint8_t data_to_send[2048];
 
-        shawn::handle pack_handle;
-
-        uint8_t data_to_send[2048];
-    };
+    size_t prepareSend(DataUpload *p_data_upload, uint8_t *p_work_mode);
+};
 
 }
 

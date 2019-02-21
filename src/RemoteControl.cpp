@@ -2,17 +2,30 @@
 
 namespace ecu_communication {
 
+RemoteControl::RemoteControl() {
+    this->work_mode_ = DEFAULT_WORK_MODE;
+}
+
 void RemoteControl::init(DataDownload *p_data_download, DataUpload *p_data_upload,
-                         std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex, shawn::SLog *p_log) {
+                         std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex,
+                         shawn::SLog *p_log, uint8_t *p_work_mode) {
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
     this->p_data_download_mutex_ = p_data_download_mutex;
     this->p_data_upload_mutex_ = p_data_upload_mutex;
     this->p_log_ = p_log;
+    this->p_work_mode_ = p_work_mode;
     this->setHandles();
     while (!this->udp_.init()) {
-        LOG_ERROR << "udp with remote init error, keep trying";
+        ROS_ERROR_STREAM("udp with remote init error, keep trying");
     }
+}
+
+void RemoteControl::setHandles() {
+    this->udp_recv_handle_ = this->udp_recv_times_.time_handle.newHandle("udp receive from remote");
+    this->udp_recv_correct_handle_ = this->udp_recv_times_.time_handle.newHandle("udp receive correct from remote");
+    this->pack1_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("pack 1 receive from remote");
+    this->pack2_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("pack 2 receive from remote");
 }
 
 void RemoteControl::dataReceive() {
@@ -46,37 +59,56 @@ void RemoteControl::dataReceive() {
 }
 
 void RemoteControl::dataSend() {
-    if (this->send_switch_) {
+    if (!this->send_switch_) {
         return;
     }
     static size_t counter = 0;
-    ++counter;
+    bool send = false;
     if ((counter % 100) == 0) {
         this->remoteSend_.pack_handle.setID(0);
-    }
-    if ((counter % 7) == 0) {
-        this->remoteSend_.pack_handle.setID(1);
-    }
-    if ((counter % 20) == 2) {
-        this->remoteSend_.pack_handle.setID(2);
+        send = true;
     }
     if ((counter % 20) == 4) {
-        this->remoteSend_.pack_handle.setID(3);
+        this->remoteSend_.pack_handle.setID(2);
+        send = true;
     }
     if ((counter % 20) == 6) {
-        this->remoteSend_.pack_handle.setID(4);
+        this->remoteSend_.pack_handle.setID(3);
+        send = true;
     }
     if ((counter % 20) == 8) {
-        this->remoteSend_.pack_handle.setID(5);
+        this->remoteSend_.pack_handle.setID(4);
+        send = true;
     }
-    if ((counter % 20) == 11) {
+    if ((counter % 20) == 10) {
+        this->remoteSend_.pack_handle.setID(5);
+        send = true;
+    }
+    if ((counter % 20) == 12) {
         this->remoteSend_.pack_handle.setID(6);
+        send = true;
     }
     if ((counter % 20) == 14) {
         this->remoteSend_.pack_handle.setID(7);
+        send = true;
     }
-    if ((counter % 20) == 17) {
+    if ((counter % 20) == 18) {
         this->remoteSend_.pack_handle.setID(8);
+        send = true;
+    }
+    if ((counter % 7) == 2) {
+        this->remoteSend_.pack_handle.setID(1);
+        send = true;
+    }
+    if (send) {
+        ROS_WARN_STREAM("counter" << counter << "  " << this->remoteSend_.pack_handle.getID());
+    }
+    ++counter;
+    if (counter >= 10000) {
+        counter = 0;
+    }
+    if (!send) {
+        return;
     }
     this->p_data_upload_mutex_->lock();
     size_t send_len = this->remoteSend_.prepareSend(this->p_data_upload_, this->p_work_mode_);
@@ -85,6 +117,16 @@ void RemoteControl::dataSend() {
         LOG_ERROR << "remote send length error: " << this->udp_.get_send_len() << ". raw data as following:";
         this->p_log_->logUint8Array((char *)this->remoteSend_.data_to_send, send_len, google::ERROR);
     }
+}
+
+void RemoteControl::setWorkMode() {
+    if (this->remoteReceive_.pack_handle.getID() == 1) {
+        this->work_mode_ = this->udp_.buffer[9];
+    }
+}
+
+uint8_t RemoteControl::getWorkMode() {
+    return this->work_mode_;
 }
 
 bool RemoteControl::time_check() {
@@ -99,29 +141,6 @@ bool RemoteControl::time_check() {
 //    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
 
     return (udp_recv_duration_check && udp_recv_till_now_check && pack_recv_duration_check && pack_recv_till_now_check);
-}
-
-
-
-uint8_t RemoteControl::getWorkMode() {
-    return this->work_mode_;
-}
-
-RemoteControl::RemoteControl() {
-    this->work_mode_ = DEFAULT_WORK_MODE;
-}
-
-void RemoteControl::setHandles() {
-    this->udp_recv_handle_ = this->udp_recv_times_.time_handle.newHandle("udp receive from remote");
-    this->udp_recv_correct_handle_ = this->udp_recv_times_.time_handle.newHandle("udp receive correct from remote");
-    this->pack1_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("pack 1 receive from remote");
-    this->pack2_recv_handle_ = this->pack_recv_times_.time_handle.newHandle("pack 2 receive from remote");
-}
-
-void RemoteControl::setWorkMode() {
-    if (this->remoteReceive_.pack_handle.getID() == 1) {
-        this->work_mode_ = this->udp_.buffer[9];
-    }
 }
 
 }

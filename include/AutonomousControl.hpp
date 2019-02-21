@@ -30,9 +30,6 @@ public:
 
     //// ROS Variables
     ros::NodeHandle nh_;
-    ros::NodeHandle private_nh_;
-    ros::Timer data_process_timer_;
-    ros::Subscriber speed_sub_;
 
     //// markers
     bool send_switch_;
@@ -45,12 +42,11 @@ public:
     std::mutex *p_data_download_mutex_;
 
 
-    void init(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle,
+    void init(ros::NodeHandle node_handle,
               DataDownload *p_data_download, DataUpload *p_data_upload,
               std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex);
     void setHandles();
     void receive_init();
-    void send_init();
     void dataProcess();
     void reportControlData();
     bool rosmsgUpdateCheck();
