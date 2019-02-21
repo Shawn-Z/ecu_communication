@@ -100,9 +100,6 @@ void RemoteControl::dataSend() {
         this->remoteSend_.pack_handle.setID(1);
         send = true;
     }
-    if (send) {
-        ROS_WARN_STREAM("counter" << counter << "  " << this->remoteSend_.pack_handle.getID());
-    }
     ++counter;
     if (counter >= 100) {
         counter = 0;
