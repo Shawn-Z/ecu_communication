@@ -2,48 +2,34 @@
 
 namespace ecu_communication {
 
-void RemoteControl::receiveInit(uint16_t p_server_port) {
-    this->server_port_ = p_server_port;
-}
-
-void RemoteControl::sendInit(std::string p_remote_ip, uint16_t p_remote_port) {
-    while (!(this->udp_client_.init(p_remote_ip.data(), p_remote_port))) {
-        ROS_ERROR_STREAM("UDP SEND TO REMOTE INIT FAILURE, KEEP TRYING!");
-    }
-    this->udp_send_proportion_.inputProportion(1, 1, 1, 1, 1, 1, 1);
-    this->data_send_timer_ = this->nh_.createTimer(ros::Duration(REMOTE_SEND_PERIOD),
-                                                  boost::bind(&RemoteControl::dataSend, this));
-}
-
-void RemoteControl::init(ros::NodeHandle node_handle, DataDownload *p_data_download, DataUpload *p_data_upload,
+void RemoteControl::init(DataDownload *p_data_download, DataUpload *p_data_upload,
                          std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex, shawn::SLog *p_log) {
-    this->nh_ = node_handle;
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
     this->p_data_download_mutex_ = p_data_download_mutex;
     this->p_data_upload_mutex_ = p_data_upload_mutex;
     this->p_log_ = p_log;
     this->setHandles();
+    while (!this->udp_.init()) {
+        LOG_ERROR << "udp with remote init error, keep trying";
+    }
 }
 
 void RemoteControl::dataReceive() {
-    while (!(this->udp_server_.init(this->server_port_))) {
-        ROS_ERROR_STREAM("UDP RECEIVE FROM REMOTE INIT FAILURE, KEEP TRYING!");
-    }
     while (ros::ok()) {
 //        if (!this->receive_switch_) {
 //            continue;
 //        }
-        this->udp_server_.recv();
+        this->udp_.recv();
         this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
-        if ((this->udp_server_.get_recv_len() > 512) || (this->udp_server_.get_recv_len() < 1)) {
-            LOG_ERROR << "remote receive length error: " << this->udp_server_.get_recv_len();
+        if ((this->udp_.get_recv_len() > 512) || (this->udp_.get_recv_len() < 1)) {
+            LOG_ERROR << "remote receive length error: " << this->udp_.get_recv_len();
             continue;
         }
         this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
-        if (!this->remoteReceive_.receiveIDCheck((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len())) {
+        if (!this->remoteReceive_.receiveIDCheck((char *)this->udp_.buffer, this->udp_.get_recv_len())) {
             LOG_ERROR << "dataID for remote illegal, receive raw data as following:";
-            this->p_log_->logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
+            this->p_log_->logUint8Array((char *)this->udp_.buffer, this->udp_.get_recv_len(), google::ERROR);
             continue;
         }
         this->pack_recv_times_.pushTimestamp(this->remoteReceive_.pack_handle);
@@ -54,7 +40,7 @@ void RemoteControl::dataReceive() {
             continue;
         }
         this->p_data_download_mutex_->lock();
-        this->remoteReceive_.dataDistribution((char *)this->udp_server_.buffer, this->p_data_download_);
+        this->remoteReceive_.dataDistribution((char *)this->udp_.buffer, this->p_data_download_);
         this->p_data_download_mutex_->unlock();
     }
 }
@@ -95,8 +81,8 @@ void RemoteControl::dataSend() {
     this->p_data_upload_mutex_->lock();
     size_t send_len = this->remoteSend_.prepareSend(this->p_data_upload_, this->p_work_mode_);
     this->p_data_upload_mutex_->unlock();
-    if (!this->udp_client_.process(this->remoteSend_.data_to_send, send_len)) {
-        LOG_ERROR << "remote send length error: " << this->udp_client_.get_send_len() << ". raw data as following:";
+    if (!this->udp_.sendToRemote(this->remoteSend_.data_to_send, send_len)) {
+        LOG_ERROR << "remote send length error: " << this->udp_.get_send_len() << ". raw data as following:";
         this->p_log_->logUint8Array((char *)this->remoteSend_.data_to_send, send_len, google::ERROR);
     }
 }
@@ -134,7 +120,7 @@ void RemoteControl::setHandles() {
 
 void RemoteControl::setWorkMode() {
     if (this->remoteReceive_.pack_handle.getID() == 1) {
-        this->work_mode_ = this->udp_server_.buffer[9];
+        this->work_mode_ = this->udp_.buffer[9];
     }
 }
 

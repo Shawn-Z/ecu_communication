@@ -17,3 +17,13 @@ reconfig: true
 send_default_when_no_msg: false
 log_rawdata: true
 publish_rawdata: true
+
+ecu_local_ip: "172.16.16.168"
+ecu_local_port: 8181
+ecu_remote_ip: "172.16.16.167"
+ecu_remote_port: 8181
+
+remote_local_ip: "172.20.10.5"
+remote_local_port: 13020
+remote_remote_ip: "172.20.10.13"
+remote_remote_port: 13020

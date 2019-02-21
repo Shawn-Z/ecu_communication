@@ -37,7 +37,6 @@ add_executable(ecu_communication
     src/DataUpload.cpp
     src/DataDownload.cpp
         src/UDPCommunication.cpp
-    src/UDPClient.cpp
     src/CommunicationProcess.cpp
     src/ECUCommunication.cpp
         include/DEFINEs.hpp src/RemoteControl.cpp include/RemoteControl.hpp src/AutonomousControl.cpp include/AutonomousControl.hpp include/Transform6t.hpp src/RemoteReceive.cpp include/RemoteReceive.hpp src/RemoteSend.cpp include/RemoteSend.hpp src/Transform6t.cpp)

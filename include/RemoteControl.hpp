@@ -10,7 +10,6 @@
 
 #include "DEFINEs.hpp"
 #include "UDPCommunication.hpp"
-#include "UDPClient.hpp"
 #include "DataDownload.hpp"
 #include "DataUpload.hpp"
 
@@ -30,17 +29,9 @@ public:
 
     uint8_t *p_work_mode_;
 
-    ros::Timer data_send_timer_;
-    ros::NodeHandle nh_;
-
     //// UDP communication data and variables
-    uint16_t server_port_;
 
-    UDPCommunication udp_server_;
-    UDPClient udp_client_;
-
-    shawn::SProportion udp_send_proportion_;
-    shawn::handle udp_pack_handle_;
+    UDPCommunication udp_;
 
     DataUpload *p_data_upload_;
     DataDownload *p_data_download_;
@@ -56,9 +47,7 @@ public:
     shawn::handle pack2_recv_handle_;
 
 
-    void init(ros::NodeHandle node_handle, DataDownload *p_data_download, DataUpload *p_data_upload, std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex, shawn::SLog *p_log);
-    void receiveInit(uint16_t p_server_port);
-    void sendInit(std::string p_remote_ip, uint16_t p_remote_port);
+    void init(DataDownload *p_data_download, DataUpload *p_data_upload, std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex, shawn::SLog *p_log);
     void dataReceive();
     void dataSend();
     bool time_check();

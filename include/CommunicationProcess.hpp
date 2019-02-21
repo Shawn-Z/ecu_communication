@@ -22,7 +22,6 @@
 #include "DEFINEs.hpp"
 
 #include "ThreeOne.hpp"
-#include "UDPClient.hpp"
 #include "UDPCommunication.hpp"
 #include "DataUpload.hpp"
 #include "DataDownload.hpp"
@@ -41,13 +40,15 @@ struct yaml_params_type {
     bool lower_layer_send;
     bool lower_layer_receive;
 
-    std::string ecu_ip;
-    int ecu_port;
-    int udp_server_port;
+    std::string ecu_local_ip;
+    int ecu_local_port;
+    std::string ecu_remote_ip;
+    int ecu_remote_port;
 
-    std::string remote_ip;
-    int remote_port;
-    int remote_server_port;
+    std::string remote_local_ip;
+    int remote_local_port;
+    std::string remote_remote_ip;
+    int remote_remote_port;
 
     bool reconfig;
     bool send_default_when_no_msg;
@@ -111,8 +112,8 @@ public:
 //    bool ros_publish_switch_;
 
     //// UDP communication
-    UDPCommunication udp_server_;
-    UDPClient udp_client_;
+    UDPCommunication udp_;
+//    UDPClient udp_client_;
     std::thread udp_receive_thread;
     shawn::SProportion udp_send_proportion_;
     shawn::handle udp_pack_handle_;

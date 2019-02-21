@@ -18,11 +18,6 @@ void AutonomousControl::receive_init() {
     this->speed_sub_ = this->nh_.subscribe<three_one_msgs::control_speed>("/speed_plan", 1, &AutonomousControl::speedCb, this);
 }
 
-void AutonomousControl::send_init() {
-    this->data_process_timer_ = this->nh_.createTimer(ros::Duration(PUBLISH_PERIOD),
-                                                      boost::bind(&AutonomousControl::dataProcess, this));
-}
-
 void AutonomousControl::dataProcess() {
     static ros::Publisher publisher = this->nh_.advertise<three_one_msgs::report>("/ecudatareport", 1);
     if (!this->send_switch_) {

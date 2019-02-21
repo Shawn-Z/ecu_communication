@@ -40,15 +40,17 @@ public:
 
     const char* getClientIP();
     intmax_t get_recv_len();
+    intmax_t get_send_len();
 
 public:
     int sockfd;
     sockaddr_in local_addr;
     sockaddr_in remote_addr;
     sockaddr_in client_addr;
+    socklen_t remote_addr_len;
     intmax_t recv_len;
     intmax_t send_len;
-    socklen_t client_ip_len;
+    socklen_t client_addr_len;
     uint8_t buffer[BUFFERSIZE];
 
 

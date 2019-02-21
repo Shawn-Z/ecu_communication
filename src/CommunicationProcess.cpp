@@ -6,31 +6,14 @@ namespace ecu_communication {
 CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle)
     : reconfigSrv_{private_node_handle}, params_{private_node_handle} {
 
-//
-//    uint8_t haha[4] = {255, 254 ,253, 225};
-//    ROS_WARN_STREAM((int)(uint8_t)this->remoteControl_.remoteReceive_.receiveIDCheck((char *)haha, 2));
-//
-//    ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteReceive_.pack_one));
-//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteReceive_.pack_two));
-//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_fuck));
-//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_one));
-//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_two));
-//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_three));
-//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_four));
-//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_five));
-//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_six));
-//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_seven));
-//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_eight));
-//        ROS_WARN_STREAM(sizeof(this->remoteControl_.remoteSend_.pack_eight.pack));
-
-
-
-
     this->nh_ = node_handle;
     this->private_nh_ = private_node_handle;
 
     this->glogInit();
     this->paramsInit();
+//    while (!this->udp_.init()) {
+//        LOG_ERROR << "udp with ecu init error, keep trying";
+//    }
     this->setTimeCheckHandle();
 
     if (this->yaml_params_.reconfig) {
@@ -40,19 +23,20 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
         this->udp_recv_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::rawdata_recv>("/udp_recv_rawdata", 1);
         this->udp_send_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::rawdata_send>("/udp_send_rawdata", 1);
     }
-    if (this->yaml_params_.lower_layer_receive) {
-        this->udp_receive_thread = std::thread(&CommunicationProcess::udpReceive, this);
-        this->udp_receive_thread.detach();
-    }
-    if (this->yaml_params_.lower_layer_send) {
-        this->udpSendInit();
-        this->udp_send_timer_ = this->nh_.createTimer(ros::Duration(UDP_SEND_PERIOD),
-                                                      boost::bind(&CommunicationProcess::udpSend, this));
-    }
+//    if (this->yaml_params_.lower_layer_receive) {
+//        this->udp_receive_thread = std::thread(&CommunicationProcess::udpReceive, this);
+//        this->udp_receive_thread.detach();
+//    }
+//    if (this->yaml_params_.lower_layer_send) {
+//        this->udp_send_proportion_.inputProportion(1, 1);
+//        this->udp_send_timer_ = this->nh_.createTimer(ros::Duration(UDP_SEND_PERIOD),
+//                                                      boost::bind(&CommunicationProcess::udpSend, this));
+//    }
+
     if (this->yaml_params_.upper_layer_send || this->yaml_params_.upper_layer_receive) {
         this->autonomousControl_.init(node_handle, private_node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_, &this->data_download_mutex_);
         if (this->yaml_params_.upper_layer_send) {
-            this->autonomousControl_.send_init();
+            this->nh_.createTimer(ros::Duration(PUBLISH_PERIOD), boost::bind(&AutonomousControl::dataProcess, &this->autonomousControl_));
         }
         if (this->yaml_params_.upper_layer_receive) {
             this->autonomousControl_.receive_init();
@@ -60,13 +44,12 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
 
     if (this->yaml_params_.remote_send || this->yaml_params_.remote_receive) {
-        this->remoteControl_.init(node_handle, &this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_);
+        this->remoteControl_.init(&this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_);
         if (this->yaml_params_.remote_send) {
-            this->remoteControl_.sendInit(this->yaml_params_.remote_ip, this->yaml_params_.remote_port);
+            this->nh_.createTimer(ros::Duration(REMOTE_SEND_PERIOD), boost::bind(&RemoteControl::dataSend, &this->remoteControl_));
         }
         if (this->yaml_params_.remote_receive) {
-            this->remoteControl_.receiveInit(this->yaml_params_.remote_server_port);
-            this->remote_receive_thread_ = std::thread(&RemoteControl::dataReceive, &(this->remoteControl_));
+            this->remote_receive_thread_ = std::thread(&RemoteControl::dataReceive, &this->remoteControl_);
             this->remote_receive_thread_.detach();
         }
     }
@@ -76,50 +59,47 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 }
 
 void CommunicationProcess::udpReceive() {
-    while (!(this->udp_server_.init(this->yaml_params_.udp_server_port))) {
-        ROS_ERROR_STREAM("UDP RECEIVE INIT FAILURE, KEEP TRYING!");
-    }
     while (ros::ok()) {
-        this->udp_server_.recv();
+        this->udp_.recv();
         this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
 
         //// todo this block is test code on 6t
         {
-            if (this->udp_server_.get_recv_len() != 13) {
-                if (this->udp_server_.get_recv_len() > 0) {
-                    LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len()
+            if (this->udp_.get_recv_len() != 13) {
+                if (this->udp_.get_recv_len() > 0) {
+                    LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len()
                               << ". raw data as following:";
-                    this->sLog_.logUint8Array((char *) this->udp_server_.buffer, this->udp_server_.get_recv_len(),
+                    this->sLog_.logUint8Array((char *) this->udp_.buffer, this->udp_.get_recv_len(),
                                               google::ERROR);
                 } else {
-                    LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len();
+                    LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len();
                 }
                 continue;
             }
             this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
 
             static Transform6t transform6t;
-            if (!transform6t.receiveCheck((char *) this->udp_server_.buffer)) {
+            if (!transform6t.receiveCheck((char *) this->udp_.buffer)) {
                 LOG_ERROR << "ecu receive ID error, receive raw data as following:";
-                this->sLog_.logUint8Array((char *) this->udp_server_.buffer, this->udp_server_.get_recv_len(),
+                this->sLog_.logUint8Array((char *) this->udp_.buffer, this->udp_.get_recv_len(),
                                           google::ERROR);
                 continue;
             }
 
-            this->udp_server_.buffer[0] = 0x00;
-            this->udp_server_.buffer[1] = 0x00;
-            this->udp_server_.buffer[2] = 0x00;
-            this->udp_server_.buffer[3] = 0xF1;
-            this->udp_server_.buffer[4] = 0x01;
-            this->udp_server_.buffer[5] = 0x08;
-            this->udp_server_.buffer[6] = transform6t.receive_6t.pack[5];
-            this->udp_server_.buffer[7] = transform6t.receive_6t.pack[6];
-            this->udp_server_.buffer[8] = 0x00;
-            this->udp_server_.buffer[9] = 0x00;
-            this->udp_server_.buffer[10] = transform6t.receive_6t.pack[7];
-            this->udp_server_.buffer[11] = transform6t.receive_6t.pack[8];
-            this->udp_server_.buffer[12] = 0x00;
-            this->udp_server_.buffer[13] = 0x00;
+            this->udp_.buffer[0] = 0x00;
+            this->udp_.buffer[1] = 0x00;
+            this->udp_.buffer[2] = 0x00;
+            this->udp_.buffer[3] = 0xF1;
+            this->udp_.buffer[4] = 0x01;
+            this->udp_.buffer[5] = 0x08;
+            this->udp_.buffer[6] = transform6t.receive_6t.pack[5];
+            this->udp_.buffer[7] = transform6t.receive_6t.pack[6];
+            this->udp_.buffer[8] = 0x00;
+            this->udp_.buffer[9] = 0x00;
+            this->udp_.buffer[10] = transform6t.receive_6t.pack[7];
+            this->udp_.buffer[11] = transform6t.receive_6t.pack[8];
+            this->udp_.buffer[12] = 0x00;
+            this->udp_.buffer[13] = 0x00;
         }
 
         //// todo comment for test on 6t
@@ -133,9 +113,9 @@ void CommunicationProcess::udpReceive() {
 //            continue;
 //        }
 //        this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
-        if (!this->data_upload_.dataIDCheck((char *)this->udp_server_.buffer)) {
+        if (!this->data_upload_.dataIDCheck((char *)this->udp_.buffer)) {
             LOG_ERROR << "ecu receive ID error, receive raw data as following:";
-            this->sLog_.logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
+            this->sLog_.logUint8Array((char *)this->udp_.buffer, this->udp_.get_recv_len(), google::ERROR);
             continue;
         }
         this->pack_recv_times_.pushTimestamp(this->data_upload_.pack_handle);
@@ -144,22 +124,16 @@ void CommunicationProcess::udpReceive() {
         this->data_upload_mutex_.unlock();
         if (this->yaml_params_.log_rawdata) {
             LOG_INFO << "UDP receive raw data log";
-            this->sLog_.logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
+            this->sLog_.logUint8Array((char *)this->udp_.buffer, this->udp_.get_recv_len(), google::ERROR);
         }
         if (this->yaml_params_.publish_rawdata) {
             this->data_upload_.recv_rawdata.data.clear();
-            this->data_upload_.recv_rawdata.data.assign(this->udp_server_.buffer, this->udp_server_.buffer + this->udp_server_.get_recv_len());
+            this->data_upload_.recv_rawdata.data.assign(this->udp_.buffer, this->udp_.buffer + this->udp_.get_recv_len());
             this->udp_recv_rawdata_publisher_.publish(this->data_upload_.recv_rawdata);
         }
     }
 }
 
-void CommunicationProcess::udpSendInit() {
-    while (!(this->udp_client_.init(this->yaml_params_.ecu_ip.data(), this->yaml_params_.ecu_port))) {
-        ROS_ERROR_STREAM("UDP SEND INIT FAILURE, KEEP TRYING!");
-    }
-    this->udp_send_proportion_.inputProportion(1, 1);
-}
 
 void CommunicationProcess::udpSend() {
     if (!(this->udp_send_switch_ || this->yaml_params_.send_default_when_no_msg || this->params_.fake_issue)) {
@@ -168,7 +142,7 @@ void CommunicationProcess::udpSend() {
 
     //// todo this block is test code on 6t
     {
-        this->udp_client_.process(this->autonomousControl_.transform6t.send_6t.pack, 13);
+//        this->udp_client_.process(this->autonomousControl_.transform6t.send_6t.pack, 13);
         return;
     }
 
@@ -187,18 +161,18 @@ void CommunicationProcess::udpSend() {
     this->data_download_mutex_.lock();
     this->data_download_.prepareSend(this->udp_pack_handle_);
     this->data_download_mutex_.unlock();
-    if (!this->udp_client_.process(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
-        LOG_ERROR << "UDP send error, send length: " << this->udp_client_.get_send_len() << ". raw data as following:";
-        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
-        return;
-    }
+//    if (!this->udp_client_.process(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
+//        LOG_ERROR << "UDP send error, send length: " << this->udp_client_.get_send_len() << ". raw data as following:";
+//        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
+//        return;
+//    }
     if (this->yaml_params_.log_rawdata) {
         LOG_INFO << "UDP send raw data log";
         this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
     }
     if (this->yaml_params_.publish_rawdata) {
         this->data_download_.send_rawdata.data.clear();
-        this->data_download_.send_rawdata.data.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + this->udp_client_.get_send_len());
+//        this->data_download_.send_rawdata.data.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + this->udp_client_.get_send_len());
         this->udp_send_rawdata_publisher_.publish(this->data_download_.send_rawdata);
     }
 }
@@ -316,13 +290,15 @@ void CommunicationProcess::paramsInit() {
     tmp_result &= this->private_nh_.getParam("remote_receive", this->yaml_params_.remote_receive);
     tmp_result &= this->private_nh_.getParam("remote_send", this->yaml_params_.remote_send);
 
-    tmp_result &= this->private_nh_.getParam("ecu_ip", this->yaml_params_.ecu_ip);
-    tmp_result &= this->private_nh_.getParam("ecu_port", this->yaml_params_.ecu_port);
-    tmp_result &= this->private_nh_.getParam("udp_server_port", this->yaml_params_.udp_server_port);
+    tmp_result &= this->private_nh_.getParam("ecu_local_ip", this->yaml_params_.ecu_local_ip);
+    tmp_result &= this->private_nh_.getParam("ecu_local_port", this->yaml_params_.ecu_local_port);
+    tmp_result &= this->private_nh_.getParam("ecu_remote_ip", this->yaml_params_.ecu_remote_ip);
+    tmp_result &= this->private_nh_.getParam("ecu_remote_port", this->yaml_params_.ecu_remote_port);
 
-    tmp_result &= this->private_nh_.getParam("remote_ip", this->yaml_params_.remote_ip);
-    tmp_result &= this->private_nh_.getParam("remote_port", this->yaml_params_.remote_port);
-    tmp_result &= this->private_nh_.getParam("remote_server_port", this->yaml_params_.remote_server_port);
+    tmp_result &= this->private_nh_.getParam("remote_local_ip", this->yaml_params_.remote_local_ip);
+    tmp_result &= this->private_nh_.getParam("remote_local_port", this->yaml_params_.remote_local_port);
+    tmp_result &= this->private_nh_.getParam("remote_remote_ip", this->yaml_params_.remote_remote_ip);
+    tmp_result &= this->private_nh_.getParam("remote_remote_port", this->yaml_params_.remote_remote_port);
 
     tmp_result &= this->private_nh_.getParam("reconfig", this->yaml_params_.reconfig);
     tmp_result &= this->private_nh_.getParam("send_default_when_no_msg", this->yaml_params_.send_default_when_no_msg);
@@ -333,6 +309,16 @@ void CommunicationProcess::paramsInit() {
         ROS_ERROR_STREAM("param not retrieved");
         ros::shutdown();
     }
+
+    this->udp_.params.local_ip = this->yaml_params_.ecu_local_ip;
+    this->udp_.params.local_port = this->yaml_params_.ecu_local_port;
+    this->udp_.params.remote_ip = this->yaml_params_.ecu_remote_ip;
+    this->udp_.params.remote_port = this->yaml_params_.ecu_remote_port;
+
+    this->remoteControl_.udp_.params.local_ip = this->yaml_params_.remote_local_ip;
+    this->remoteControl_.udp_.params.local_port = this->yaml_params_.remote_local_port;
+    this->remoteControl_.udp_.params.remote_ip = this->yaml_params_.remote_remote_ip;
+    this->remoteControl_.udp_.params.remote_port = this->yaml_params_.remote_remote_port;
 
     this->udp_send_switch_ = false;
     //// todo log params
