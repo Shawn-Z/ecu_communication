@@ -59,54 +59,16 @@ void RemoteControl::dataReceive() {
 }
 
 void RemoteControl::dataSend() {
+    static std::vector<uint8_t> ID_set{0,2,3,1,4,5,6,1,7,8,1,2,3,4,1,5,6,1,7,8,2,1,3,4,1,5,6,7,1,8,2,1,3,4,5,1,6,7,1,8,2,3,1,4,5,1,6,7,8,1};
+    static int counter = -1;
     if (!this->send_switch_) {
         return;
     }
-    static size_t counter = 0;
-    bool send = false;
-    if ((counter % 100) == 0) {
-        this->remoteSend_.pack_handle.setID(0);
-        send = true;
-    }
-    if ((counter % 20) == 4) {
-        this->remoteSend_.pack_handle.setID(2);
-        send = true;
-    }
-    if ((counter % 20) == 6) {
-        this->remoteSend_.pack_handle.setID(3);
-        send = true;
-    }
-    if ((counter % 20) == 8) {
-        this->remoteSend_.pack_handle.setID(4);
-        send = true;
-    }
-    if ((counter % 20) == 10) {
-        this->remoteSend_.pack_handle.setID(5);
-        send = true;
-    }
-    if ((counter % 20) == 12) {
-        this->remoteSend_.pack_handle.setID(6);
-        send = true;
-    }
-    if ((counter % 20) == 14) {
-        this->remoteSend_.pack_handle.setID(7);
-        send = true;
-    }
-    if ((counter % 20) == 18) {
-        this->remoteSend_.pack_handle.setID(8);
-        send = true;
-    }
-    if ((counter % 7) == 2) {
-        this->remoteSend_.pack_handle.setID(1);
-        send = true;
-    }
     ++counter;
-    if (counter >= 100) {
+    if (counter == 50) {
         counter = 0;
     }
-    if (!send) {
-        return;
-    }
+    this->remoteSend_.pack_handle.setID(ID_set[counter]);
     this->p_data_upload_mutex_->lock();
     size_t send_len = this->remoteSend_.prepareSend(this->p_data_upload_, this->p_work_mode_);
     this->p_data_upload_mutex_->unlock();
@@ -141,3 +103,51 @@ bool RemoteControl::time_check() {
 }
 
 }
+
+
+//    ROS_WARN_STREAM(this->remoteSend_.pack_handle.getID());
+//    static size_t counter = 0;
+//    bool send = false;
+//    if ((counter % 100) == 0) {
+//        this->remoteSend_.pack_handle.setID(0);
+//        send = true;
+//    }
+//    if ((counter % 20) == 4) {
+//        this->remoteSend_.pack_handle.setID(2);
+//        send = true;
+//    }
+//    if ((counter % 20) == 6) {
+//        this->remoteSend_.pack_handle.setID(3);
+//        send = true;
+//    }
+//    if ((counter % 20) == 8) {
+//        this->remoteSend_.pack_handle.setID(4);
+//        send = true;
+//    }
+//    if ((counter % 20) == 10) {
+//        this->remoteSend_.pack_handle.setID(5);
+//        send = true;
+//    }
+//    if ((counter % 20) == 12) {
+//        this->remoteSend_.pack_handle.setID(6);
+//        send = true;
+//    }
+//    if ((counter % 20) == 14) {
+//        this->remoteSend_.pack_handle.setID(7);
+//        send = true;
+//    }
+//    if ((counter % 20) == 18) {
+//        this->remoteSend_.pack_handle.setID(8);
+//        send = true;
+//    }
+//    if ((counter % 7) == 2) {
+//        this->remoteSend_.pack_handle.setID(1);
+//        send = true;
+//    }
+//    ++counter;
+//    if (counter >= 100) {
+//        counter = 0;
+//    }
+//    if (!send) {
+//        return;
+//    }
