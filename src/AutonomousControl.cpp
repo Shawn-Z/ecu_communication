@@ -19,7 +19,8 @@ void AutonomousControl::setHandles() {
 }
 
 void AutonomousControl::receive_init() {
-    this->nh_.subscribe<three_one_msgs::control_speed>("/speed_plan", 1, &AutonomousControl::speedCb, this);
+    this->speed_sub_ = this->nh_.subscribe<three_one_msgs::control_speed>("/speed_plan", 1, &AutonomousControl::speedCb, this);
+    this->steer_sub_ = this->nh_.subscribe<three_one_msgs::control_speed>("/steer_cmd", 1, &AutonomousControl::steerCb, this);
 }
 
 void AutonomousControl::dataProcess() {
@@ -80,9 +81,22 @@ void AutonomousControl::speedCb(three_one_msgs::control_speed msg) {
     if (!this->receive_switch_) {
         return;
     }
+    this->p_data_download_mutex_->lock();
     this->p_data_download_->pack_one.expect_vehicle_speed = (uint8_t)round(msg.speed * 10.0);
     this->p_data_download_->pack_one.vehicle_gear = msg.gear;
+    this->p_data_download_mutex_->unlock();
     this->msg_update_times.pushTimestamp(this->speed_sub_handle_);
+}
+
+void AutonomousControl::steerCb(three_one_msgs::control_steer msg) {
+    if (!this->receive_switch_) {
+        return;
+    }
+    this->p_data_download_mutex_->lock();
+    this->p_data_download_->pack_one.vehicle_turn_to = (msg.curvature > 0)?
+            ((uint8_t)three_one_control::vehicle_turn_to::left): ((uint8_t)three_one_control::vehicle_turn_to::right);
+    this->p_data_download_->pack_one.thousand_times_curvature = (uint16_t)round(fabs(msg.curvature) * 1000.0);
+    this->p_data_download_mutex_->unlock();
 }
 
 }

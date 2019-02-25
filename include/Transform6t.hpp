@@ -4,6 +4,7 @@
 #include <tiff.h>
 #include <cstdint>
 #include <cstring>
+#include "DataDownload.hpp"
 
 namespace ecu_communication {
 
@@ -38,6 +39,7 @@ public:
     send_6t_type send_6t;
 
     bool receiveCheck(char *p_recv_raw_data);
+    bool prepareSend(DataDownload *p_data_download);
 };
 
 }

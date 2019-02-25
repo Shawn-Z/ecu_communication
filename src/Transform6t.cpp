@@ -13,4 +13,34 @@ namespace ecu_communication {
         return ID_check;
     }
 
+    bool Transform6t::prepareSend(ecu_communication::DataDownload *p_data_download) {
+        this->send_6t.pack[0] = 0x88;
+        this->send_6t.pack[1] = 0x00;
+        this->send_6t.pack[2] = 0x00;
+        this->send_6t.pack[3] = 0x06;
+        this->send_6t.pack[4] = 0x60;
+        this->send_6t.pack[5] = 0x00;
+        double_t tmp_speed = p_data_download->pack_one.expect_vehicle_speed / 10.0 * 3.6 * 1000;
+        if (tmp_speed > 65000) {
+            tmp_speed = 65000;
+        }
+        this->send_6t.vehicle_speed = (uint16_t)round(tmp_speed);
+        if ((p_data_download->pack_one.vehicle_gear == 1) && (p_data_download->pack_one.vehicle_turn_to == 0)) {
+            this->send_6t.steer_direction = 3;
+        }
+        if ((p_data_download->pack_one.vehicle_gear == 1) && (p_data_download->pack_one.vehicle_turn_to == 1)) {
+            this->send_6t.steer_direction = 1;
+        }
+        if ((p_data_download->pack_one.vehicle_gear == 2) && (p_data_download->pack_one.vehicle_turn_to == 0)) {
+            this->send_6t.steer_direction = 15;
+        }
+        if ((p_data_download->pack_one.vehicle_gear == 2) && (p_data_download->pack_one.vehicle_turn_to == 1)) {
+            this->send_6t.steer_direction = 7;
+        }
+        //// todo steer level calculate
+        if ((p_data_download->pack_one.vehicle_gear == 0) || (p_data_download->pack_one.work_mode != 1)) {
+            this->send_6t.vehicle_speed = 0;
+            this->send_6t.steer_level = 0;
+        }
+    }
 }

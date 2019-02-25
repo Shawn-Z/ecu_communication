@@ -16,7 +16,7 @@ size_t RemoteSend::prepareSend(DataUpload *p_data_upload, uint8_t *p_work_mode) 
                 this->pack_fuck.controlled_state = 0;
             }
             this->pack_fuck.terminal_ID;
-            this->pack_fuck.check_sum;
+            this->checkSum();
             send_len = sizeof(this->pack_fuck.pack);
             memcpy(this->data_to_send, this->pack_fuck.pack, send_len);
             break;
@@ -142,6 +142,19 @@ size_t RemoteSend::prepareSend(DataUpload *p_data_upload, uint8_t *p_work_mode) 
         }
     }
     return send_len;
+}
+
+void RemoteSend::checkSum() {
+    int sum = 0;
+    for (size_t i = 2; i < 19; ++i) {
+        sum += this->pack_fuck.pack[i];
+        if (sum > 0xFF) {
+            sum = ~sum;
+            sum +=1;
+        }
+    }
+    sum = sum & 0xFF;
+    this->pack_fuck.pack[19] = (uint8_t)sum;
 }
 
 }

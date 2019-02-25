@@ -15,7 +15,7 @@ union remote_send_pack_fuck_type {
         uint8_t ID_one;
         uint8_t ID_two;
         uint8_t car_type;
-        uint16_t car_ID;
+        uint8_t car_ID;
         uint32_t gps_week;
         uint64_t gps_ms;
         uint8_t SOC;
@@ -23,7 +23,7 @@ union remote_send_pack_fuck_type {
         uint8_t terminal_ID;
         uint8_t check_sum;
     };
-    uint8_t pack[2];
+    uint8_t pack[20];
 };
 
 union remote_send_pack_one_type {
@@ -33,14 +33,14 @@ union remote_send_pack_one_type {
         uint8_t gear;
         uint8_t park_status;
         uint16_t mechanical_brake;
-        uint8_t vehicle_speed;
-        uint32_t mileage;
+        uint16_t vehicle_speed;
+        uint64_t mileage;
         uint8_t error_code;
         uint16_t left_wheel_expect_speed;
         uint16_t right_wheel_expect_speed;
-        uint8_t vehicle_height;
-        double_t latitude;
+        uint16_t vehicle_height;
         double_t longitude;
+        double_t latitude;
         int32_t altitude;
         float_t yaw;
         float_t roll;
@@ -51,7 +51,7 @@ union remote_send_pack_one_type {
         uint8_t SOC;
         uint8_t reserve_byte1;
     };
-    uint8_t pack[2];
+    uint8_t pack[69];
 };
 
 union remote_send_pack_two_type {
@@ -64,7 +64,7 @@ union remote_send_pack_two_type {
         uint8_t vehicle_speed;
         uint8_t gear;
     };
-    uint8_t pack[2];
+    uint8_t pack[10];
 };
 
 union remote_send_pack_three_type {
@@ -78,7 +78,7 @@ union remote_send_pack_three_type {
         uint8_t SOC;
         uint8_t tailgate_state;
     };
-    uint8_t pack[2];
+    uint8_t pack[10];
 };
 
 union remote_send_pack_four_type {
@@ -94,7 +94,7 @@ union remote_send_pack_four_type {
         uint8_t right_three_cylinder_position;
         uint8_t right_four_cylinder_position;
     };
-    uint8_t pack[2];
+    uint8_t pack[10];
 };
 
 union remote_send_pack_five_type {
@@ -110,7 +110,7 @@ union remote_send_pack_five_type {
         uint8_t right_three_cylinder_pressure;
         uint8_t right_four_cylinder_pressure;
     };
-    uint8_t pack[2];
+    uint8_t pack[10];
 };
 
 union remote_send_pack_six_type {
@@ -122,7 +122,7 @@ union remote_send_pack_six_type {
         uint8_t vehicle_pitch;
         int16_t left_torque;
     };
-    uint8_t pack[2];
+    uint8_t pack[10];
 };
 
 union remote_send_pack_seven_type {
@@ -134,7 +134,7 @@ union remote_send_pack_seven_type {
         uint8_t error_code;
         uint32_t left_pulse;
     };
-    uint8_t pack[2];
+    uint8_t pack[10];
 };
 
 union remote_send_pack_eight_type {
@@ -146,7 +146,7 @@ union remote_send_pack_eight_type {
         uint8_t park_status;
         uint8_t reserve_bytes1[2];
     };
-    uint8_t pack[2];
+    uint8_t pack[10];
 };
 
 #pragma pack()
@@ -167,6 +167,8 @@ public:
     uint8_t data_to_send[2048];
 
     size_t prepareSend(DataUpload *p_data_upload, uint8_t *p_work_mode);
+
+    void checkSum();
 };
 
 }

@@ -30,6 +30,8 @@ public:
 
     //// ROS Variables
     ros::NodeHandle nh_;
+    ros::Subscriber speed_sub_;
+    ros::Subscriber steer_sub_;
 
     //// markers
     bool send_switch_;
@@ -51,6 +53,7 @@ public:
     void reportControlData();
     bool rosmsgUpdateCheck();
     void speedCb(three_one_msgs::control_speed msg);
+    void steerCb(three_one_msgs::control_steer msg);
 
     Transform6t transform6t;
 };

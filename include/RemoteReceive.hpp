@@ -43,7 +43,7 @@ union remote_receive_pack_one_type {
             uint8_t functions_two;
         };
     };
-    uint8_t result_data[2];
+    uint8_t result_data[18];
 };
 
 union remote_receive__pack_two_type {
@@ -81,7 +81,7 @@ union remote_receive__pack_two_type {
         uint8_t reserve_bytes1[3];
         uint8_t work_mode;
     };
-    uint8_t result_data[2];
+    uint8_t result_data[10];
 };
 
 #pragma pack()

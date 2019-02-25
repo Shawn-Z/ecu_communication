@@ -107,6 +107,8 @@ public:
     DataDownload();
     void init();
     void prepareSend(shawn::handle p_handle);
+
+    bool durex();
 };
 
 }

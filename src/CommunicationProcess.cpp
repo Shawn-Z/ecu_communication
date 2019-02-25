@@ -236,6 +236,9 @@ void CommunicationProcess::udpSend() {
 
     //// todo this block is test code on 6t
     {
+        this->data_download_mutex_.lock();
+        this->autonomousControl_.transform6t.prepareSend(&this->data_download_);
+        this->data_download_mutex_.unlock();
         this->udp_.sendToRemote(this->autonomousControl_.transform6t.send_6t.pack, 13);
         return;
     }
@@ -253,6 +256,7 @@ void CommunicationProcess::udpSend() {
     }
     //// todo add safe check
     this->data_download_mutex_.lock();
+    this->data_download_.durex();
     this->data_download_.prepareSend(this->udp_pack_handle_);
     this->data_download_mutex_.unlock();
     if (!this->udp_.sendToRemote(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {

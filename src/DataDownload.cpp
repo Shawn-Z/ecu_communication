@@ -99,4 +99,11 @@ void DataDownload::dataDistribution() {
     }
 }
 
+bool DataDownload::durex() {
+    if ((this->pack_one.work_mode != 1) || (this->pack_one.parking_control == (uint8_t)three_one_control::parking_control::on)) {
+        this->pack_one.expect_vehicle_speed = 0;
+        this->pack_one.thousand_times_curvature = 0;
+    }
+}
+
 }
