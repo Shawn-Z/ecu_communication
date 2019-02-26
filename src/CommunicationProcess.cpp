@@ -180,18 +180,42 @@ void CommunicationProcess::udpReceive() {
                 continue;
             }
 
+            union {
+                struct {
+                    uint8_t low_byte;
+                    uint8_t high_byte;
+                };
+                uint16_t result;
+            } left_rpm_6t;
+
+            union {
+                struct {
+                    uint8_t low_byte;
+                    uint8_t high_byte;
+                };
+                uint16_t result;
+            } right_rpm_6t;
+
+            left_rpm_6t.low_byte = transform6t.receive_6t.pack[5];
+            left_rpm_6t.high_byte = transform6t.receive_6t.pack[6];
+            right_rpm_6t.low_byte = transform6t.receive_6t.pack[7];
+            right_rpm_6t.high_byte = transform6t.receive_6t.pack[8];
+            this->udp_.buffer[8] = (left_rpm_6t.result <= 12000)? 0: 1;
+            this->udp_.buffer[9] = (right_rpm_6t.result >= 12000)? 0: 1;
+
+            left_rpm_6t.result = (uint16_t)round(fabs(left_rpm_6t.result - 12000.0));
+            right_rpm_6t.result = (uint16_t)round(fabs(right_rpm_6t.result - 12000.0));
+
             this->udp_.buffer[0] = 0x00;
             this->udp_.buffer[1] = 0x00;
             this->udp_.buffer[2] = 0x00;
             this->udp_.buffer[3] = 0xF1;
             this->udp_.buffer[4] = 0x01;
             this->udp_.buffer[5] = 0x08;
-            this->udp_.buffer[6] = transform6t.receive_6t.pack[5];
-            this->udp_.buffer[7] = transform6t.receive_6t.pack[6];
-            this->udp_.buffer[8] = 0x00;
-            this->udp_.buffer[9] = 0x00;
-            this->udp_.buffer[10] = transform6t.receive_6t.pack[7];
-            this->udp_.buffer[11] = transform6t.receive_6t.pack[8];
+            this->udp_.buffer[6] = left_rpm_6t.low_byte;
+            this->udp_.buffer[7] = left_rpm_6t.high_byte;
+            this->udp_.buffer[10] = right_rpm_6t.low_byte;
+            this->udp_.buffer[11] = right_rpm_6t.high_byte;
             this->udp_.buffer[12] = 0x00;
             this->udp_.buffer[13] = 0x00;
         }

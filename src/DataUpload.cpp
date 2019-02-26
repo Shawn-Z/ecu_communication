@@ -199,14 +199,45 @@ void DataUpload::dataToMsg() {
     this->report.motion.left_motor_rpm = this->pack_two.left_motor_actual_speed;
     this->report.motion.right_motor_rpm = this->pack_two.right_motor_actual_speed;
     this->report.motion.mechanical_brake = this->pack_one.mechanical_brake * 0.1;
-    this->report.motion.vehicle_speed = this->pack_one.vehicle_speed * 0.1;
+//    this->report.motion.vehicle_speed = this->pack_one.vehicle_speed * 0.1;
+    //// todo comment for 6t
+//    this->report.motion.left_wheel_speed =
+//            ((this->pack_two.left_motor_gear == (uint8_t)three_one_feedback::left_wheel_rotate::forward)? 1: -1) *
+//            this->pack_two.left_motor_actual_speed * RPM_TO_SPEED;
+//    this->report.motion.right_wheel_speed =
+//            ((this->pack_two.right_motor_gear == (uint8_t)three_one_feedback::right_wheel_rotate ::forward)? 1: -1) *
+//            this->pack_two.right_motor_actual_speed * RPM_TO_SPEED;
+
+    //// todo this block for 6t test
     this->report.motion.left_wheel_speed =
             ((this->pack_two.left_motor_gear == (uint8_t)three_one_feedback::left_wheel_rotate::forward)? 1: -1) *
-            this->pack_two.left_motor_actual_speed * RPM_TO_SPEED;
+            this->pack_two.left_motor_actual_speed / 148.5 / 3.6;
     this->report.motion.right_wheel_speed =
             ((this->pack_two.right_motor_gear == (uint8_t)three_one_feedback::right_wheel_rotate ::forward)? 1: -1) *
-            this->pack_two.right_motor_actual_speed * RPM_TO_SPEED;
+            this->pack_two.right_motor_actual_speed / 148.5 / 3.6;
+    this->report.motion.current_gear = (uint8_t)three_one_feedback::current_gear::N;
+    if ((this->report.motion.left_wheel_speed <= 0) && (this->report.motion.right_wheel_speed <= 0)) {
+        this->report.motion.current_gear = (uint8_t)three_one_feedback::current_gear::R;
+    }
+    if ((this->report.motion.left_wheel_speed >= 0) && (this->report.motion.right_wheel_speed >= 0)) {
+        this->report.motion.current_gear = (uint8_t)three_one_feedback::current_gear::D;
+    }
+
+
+
+
+
     this->report.motion.vehicle_speed = 0.5 * (this->report.motion.left_wheel_speed + this->report.motion.right_wheel_speed);
+    if (this->report.motion.left_wheel_speed * this->report.motion.right_wheel_speed < -0.0001) {
+        this->report.motion.current_gear = (uint8_t)three_one_feedback::current_gear::spin;
+        if (this->report.motion.left_wheel_speed < this->report.motion.right_wheel_speed) {
+            this->report.motion.spin = (uint8_t)three_one_feedback::spin_status::counterclockwise;
+        } else {
+            this->report.motion.spin = (uint8_t)three_one_feedback::spin_status::clockwise;
+        }
+    } else {
+        this->report.motion.spin = (uint8_t)three_one_feedback::spin_status::not_spin;
+    }
 
     this->report.torque.left = this->pack_five.left_torque;
     this->report.torque.right = this->pack_six.right_torque;

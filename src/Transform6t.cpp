@@ -21,8 +21,8 @@ namespace ecu_communication {
         this->send_6t.pack[4] = 0x60;
         this->send_6t.pack[5] = 0x00;
         double_t tmp_speed = p_data_download->pack_one.expect_vehicle_speed / 10.0 * 3.6 * 1000;
-        if (tmp_speed > 65000) {
-            tmp_speed = 65000;
+        if (tmp_speed > 40000) {
+            tmp_speed = 40000;
         }
         this->send_6t.vehicle_speed = (uint16_t)round(tmp_speed);
         if ((p_data_download->pack_one.vehicle_gear == 1) && (p_data_download->pack_one.vehicle_turn_to == 0)) {

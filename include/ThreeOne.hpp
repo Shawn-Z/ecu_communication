@@ -146,7 +146,8 @@ namespace three_one_feedback {
 enum class current_gear {
     N = 1,
     D = 2,
-    R = 3
+    R = 3,
+    spin = 4
 };
 
 enum class left_wheel_rotate {
@@ -180,6 +181,12 @@ enum class vertical_wall_status {
 enum class park_status {
     not_parked = 0,
     parked = 1
+};
+
+enum class spin_status {
+    not_spin = 0,
+    counterclockwise = 1,
+    clockwise = 2
 };
 
 }

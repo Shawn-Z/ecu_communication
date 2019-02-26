@@ -20,7 +20,7 @@ void AutonomousControl::setHandles() {
 
 void AutonomousControl::receive_init() {
     this->speed_sub_ = this->nh_.subscribe<three_one_msgs::control_speed>("/speed_plan", 1, &AutonomousControl::speedCb, this);
-    this->steer_sub_ = this->nh_.subscribe<three_one_msgs::control_speed>("/steer_cmd", 1, &AutonomousControl::steerCb, this);
+    this->steer_sub_ = this->nh_.subscribe<three_one_msgs::control_steer>("/steer_cmd", 1, &AutonomousControl::steerCb, this);
 }
 
 void AutonomousControl::dataProcess() {
