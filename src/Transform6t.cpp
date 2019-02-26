@@ -37,7 +37,8 @@ namespace ecu_communication {
         if ((p_data_download->pack_one.vehicle_gear == 2) && (p_data_download->pack_one.vehicle_turn_to == 1)) {
             this->send_6t.steer_direction = 7;
         }
-        //// todo steer level calculate
+        double_t tmp_b = 2.7;
+        this->send_6t.steer_level = (uint8_t)round(200.0 * tmp_b * p_data_download->pack_one.thousand_times_curvature / 1000.0 / (2.0 + tmp_b * p_data_download->pack_one.thousand_times_curvature / 1000.0));
         if ((p_data_download->pack_one.vehicle_gear == 0) || (p_data_download->pack_one.work_mode != 1)) {
             this->send_6t.vehicle_speed = 0;
             this->send_6t.steer_level = 0;
