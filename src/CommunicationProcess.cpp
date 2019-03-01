@@ -15,6 +15,8 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
     if (this->yaml_params_.reconfig) {
         this->reconfigSrv_.setCallback(boost::bind(&CommunicationProcess::reconfigureRequest, this, _1, _2));
+        this->params_.fake_issue = false;
+        this->params_.params_lock = true;
     }
     if (this->yaml_params_.publish_rawdata) {
         this->udp_recv_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::rawdata_recv>("/udp_recv_rawdata", 1);
@@ -242,7 +244,7 @@ void CommunicationProcess::udpReceive() {
         this->data_upload_mutex_.unlock();
         if (this->yaml_params_.log_rawdata) {
             LOG_INFO << "UDP receive raw data log";
-            this->sLog_.logUint8Array((char *)this->udp_.buffer, this->udp_.get_recv_len(), google::ERROR);
+            this->sLog_.logUint8Array((char *)this->udp_.buffer, this->udp_.get_recv_len(), google::INFO);
         }
         if (this->yaml_params_.publish_rawdata) {
             this->data_upload_.recv_rawdata.data.clear();
@@ -291,7 +293,7 @@ void CommunicationProcess::udpSend() {
 //    }
     if (this->yaml_params_.log_rawdata) {
         LOG_INFO << "UDP send raw data log";
-        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
+        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::INFO);
     }
     if (this->yaml_params_.publish_rawdata) {
         this->data_download_.send_rawdata.data.clear();
@@ -389,6 +391,7 @@ bool CommunicationProcess::modeSelect() {
     mode_update_result = this->remoteControl_.time_check();
     if (!mode_update_result) {
         this->work_mode_ = work_mode::ERROR;
+        LOG_ERROR << "work mode not receive";
         return false;
     }
 

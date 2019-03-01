@@ -15,8 +15,8 @@ union remote_receive_pack_one_type {
     struct {
         uint8_t ID_one;
         uint8_t ID_two;
-        int32_t steer_level;
-        int32_t throttle;
+        int16_t steer_level;
+        int16_t throttle;
         uint16_t thousand_times_curvature;
         uint8_t expect_vehicle_speed;
         uint8_t expect_left_speed;
@@ -43,7 +43,7 @@ union remote_receive_pack_one_type {
             uint8_t functions_two;
         };
     };
-    uint8_t result_data[18];
+    uint8_t result_data[14];
 };
 
 union remote_receive__pack_two_type {

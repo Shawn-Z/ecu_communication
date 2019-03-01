@@ -5,12 +5,12 @@ lower_layer_receive: true
 remote_receive: true
 remote_send: true
 
-ecu_local_ip: "192.168.1.101"
+ecu_local_ip: "172.16.16.167"
 ecu_local_port: 8181
 ecu_remote_ip: "172.16.16.168"
 ecu_remote_port: 8181
 
-remote_local_ip: "192.168.1.101"
+remote_local_ip: "172.16.16.167"
 remote_local_port: 13020
 remote_remote_ip: "172.16.16.168"
 remote_remote_port: 13020

@@ -59,6 +59,11 @@ void RemoteControl::dataReceive() {
 }
 
 void RemoteControl::dataSend() {
+    if ((*this->p_work_mode_) == 0) {
+        uint8_t connect_data[] = {0xF1, 0x00};
+        this->udp_.sendToRemote(connect_data, 2);
+        return;
+    }
     static std::vector<uint8_t> ID_set{0,2,3,1,4,5,6,1,7,8,1,2,3,4,1,5,6,1,7,8,2,1,3,4,1,5,6,7,1,8,2,1,3,4,5,1,6,7,1,8,2,3,1,4,5,1,6,7,8,1};
     static int counter = -1;
     if (!this->send_switch_) {
@@ -95,7 +100,7 @@ bool RemoteControl::time_check() {
     bool pack_recv_till_now_check = true;
     //// todo modify parameter of check
 //    udp_recv_duration_check = this->udp_recv_times_.checkTimestampsDuration(-1, -1);
-    udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, 500);
+    udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, 800);
 //    pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(-1, -1);
 //    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
 

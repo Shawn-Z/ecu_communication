@@ -118,8 +118,8 @@ union remote_send_pack_six_type {
         uint8_t ID_one;
         uint8_t ID_two;
         uint32_t mileage;
-        uint8_t vehicle_roll;
-        uint8_t vehicle_pitch;
+        int8_t vehicle_roll;
+        int8_t vehicle_pitch;
         int16_t left_torque;
     };
     uint8_t pack[10];
