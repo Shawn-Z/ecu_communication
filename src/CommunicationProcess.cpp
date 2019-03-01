@@ -258,15 +258,6 @@ void CommunicationProcess::udpSend() {
         return;
     }
 
-    //// todo this block is test code on 6t
-    {
-        this->data_download_mutex_.lock();
-        this->autonomousControl_.transform6t.prepareSend(&this->data_download_);
-        this->data_download_mutex_.unlock();
-        this->udp_.sendToRemote(this->autonomousControl_.transform6t.send_6t.pack, 13);
-        return;
-    }
-
     this->udp_pack_handle_.setID(this->udp_send_proportion_.stepping());
     if (!this->udp_send_switch_) {
         this->data_download_mutex_.lock();
@@ -278,23 +269,33 @@ void CommunicationProcess::udpSend() {
         fake_issue();
         this->data_download_mutex_.unlock();
     }
-    //// todo add safe check
     this->data_download_mutex_.lock();
     this->data_download_.durex();
     this->data_download_.prepareSend(this->udp_pack_handle_);
     this->data_download_mutex_.unlock();
-    if (!this->udp_.sendToRemote(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
-        LOG_ERROR << "UDP send error, send length: " << this->udp_.get_send_len() << ". raw data as following:";
-        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
-        return;
+
+
+    //// todo this block is test code on 6t
+    {
+        this->data_download_mutex_.lock();
+        this->autonomousControl_.transform6t.prepareSend(&this->data_download_);
+        this->data_download_mutex_.unlock();
+        this->udp_.sendToRemote(this->autonomousControl_.transform6t.send_6t.pack, 13);
     }
+
+    //// todo comment for test on 6t
+//    if (!this->udp_.sendToRemote(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
+//        LOG_ERROR << "UDP send error, send length: " << this->udp_.get_send_len() << ". raw data as following:";
+//        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
+//        return;
+//    }
     if (this->yaml_params_.log_rawdata) {
         LOG_INFO << "UDP send raw data log";
         this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
     }
     if (this->yaml_params_.publish_rawdata) {
         this->data_download_.send_rawdata.data.clear();
-//        this->data_download_.send_rawdata.data.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + this->udp_client_.get_send_len());
+        this->data_download_.send_rawdata.data.assign(this->data_download_.data_to_send, this->data_download_.data_to_send + sizeof(this->data_download_.data_to_send));
         this->udp_send_rawdata_publisher_.publish(this->data_download_.send_rawdata);
     }
 }
@@ -312,12 +313,18 @@ void CommunicationProcess::timeCheck() {
 
     if (this->yaml_params_.lower_layer_receive) {
         udp_recv_check = udpReceiveCheck();
+        if (!udp_recv_check) {
+            LOG_ERROR << "udp receive from car abnormal";
+        }
     }
 
     switch ((int)this->work_mode_) {
         case (int)work_mode::autonomous: {
             if (this->yaml_params_.upper_layer_receive) {
                 msg_update_check = this->autonomousControl_.rosmsgUpdateCheck();
+                if (!msg_update_check) {
+                    LOG_ERROR << "msg receive from ros abnormal";
+                }
             }
             this->autonomousControl_.send_switch_ = udp_recv_check;
             this->remoteControl_.send_switch_ = udp_recv_check;
@@ -329,6 +336,9 @@ void CommunicationProcess::timeCheck() {
         case (int)work_mode::remote: {
             if (this->yaml_params_.remote_receive) {
                 remote_update_check = this->remoteControl_.time_check();
+                if (!remote_update_check) {
+                    LOG_ERROR << "udp receive from remote abnormal";
+                }
             }
             this->autonomousControl_.send_switch_ = udp_recv_check;
             this->remoteControl_.send_switch_ = udp_recv_check;
@@ -367,7 +377,7 @@ bool CommunicationProcess::udpReceiveCheck() {
     bool pack_recv_till_now_check = true;
     //// todo modify parameter of check
 //    udp_recv_duration_check = this->udp_recv_times_.checkTimestampsDuration(-1, -1);
-//    udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, -1);
+    udp_recv_till_now_check = this->udp_recv_times_.checkTimestampsTillNow(-1, 500);
 //    pack_recv_duration_check = this->pack_recv_times_.checkTimestampsDuration(-1, -1);
 //    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
 

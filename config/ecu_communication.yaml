@@ -1,21 +1,21 @@
 upper_layer_send: true
-upper_layer_receive: false
+upper_layer_receive: true
 lower_layer_send: true
-lower_layer_receive: false
+lower_layer_receive: true
 remote_receive: true
 remote_send: true
 
-ecu_local_ip: "172.20.10.7"
+ecu_local_ip: "192.168.1.101"
 ecu_local_port: 8181
 ecu_remote_ip: "172.16.16.168"
 ecu_remote_port: 8181
 
-remote_local_ip: "172.20.10.7"
+remote_local_ip: "192.168.1.101"
 remote_local_port: 13020
 remote_remote_ip: "172.16.16.168"
 remote_remote_port: 13020
 
 reconfig: true
-send_default_when_no_msg: false
+send_default_when_no_msg: true
 log_rawdata: true
 publish_rawdata: true

@@ -3,6 +3,11 @@
 
 namespace three_one_control {
 
+enum class halt {
+    off = 0,
+    on = 1
+};
+
 enum class work_mode {
     wrong_mode = 0,
     curvature_and_vehicle_speed = 1,

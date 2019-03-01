@@ -72,8 +72,8 @@ bool AutonomousControl::rosmsgUpdateCheck() {
     //// todo modify check
     bool speed_check = true;
     bool steer_check = true;
-    speed_check = this->msg_update_times.checkSingleTimestampTillNow(this->speed_sub_handle_, -1, -1);
-    steer_check = this->msg_update_times.checkSingleTimestampTillNow(this->steer_sub_handle_, -1, -1);
+    speed_check = this->msg_update_times.checkSingleTimestampTillNow(this->speed_sub_handle_, -1, 500);
+    steer_check = this->msg_update_times.checkSingleTimestampTillNow(this->steer_sub_handle_, -1, 500);
     return speed_check && steer_check;
 }
 
@@ -84,6 +84,11 @@ void AutonomousControl::speedCb(three_one_msgs::control_speed msg) {
     this->p_data_download_mutex_->lock();
     this->p_data_download_->pack_one.expect_vehicle_speed = (uint8_t)round(msg.speed * 10.0);
     this->p_data_download_->pack_one.vehicle_gear = msg.gear;
+    if (msg.halt != (uint8_t)three_one_control::halt::off) {
+        this->p_data_download_->pack_one.work_mode = (uint8_t)three_one_control::work_mode::halt;
+    } else {
+        this->p_data_download_->pack_one.work_mode = (uint8_t)three_one_control::work_mode::curvature_and_vehicle_speed;
+    }
     this->p_data_download_mutex_->unlock();
     this->msg_update_times.pushTimestamp(this->speed_sub_handle_);
 }
@@ -97,6 +102,7 @@ void AutonomousControl::steerCb(three_one_msgs::control_steer msg) {
             ((uint8_t)three_one_control::vehicle_turn_to::left): ((uint8_t)three_one_control::vehicle_turn_to::right);
     this->p_data_download_->pack_one.thousand_times_curvature = (uint16_t)round(fabs(msg.curvature) * 1000.0);
     this->p_data_download_mutex_->unlock();
+    this->msg_update_times.pushTimestamp(this->steer_sub_handle_);
 }
 
 }
