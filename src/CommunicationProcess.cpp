@@ -161,7 +161,7 @@ void CommunicationProcess::udpReceive() {
 
         //// todo this block is test code on 6t
         {
-            if (this->udp_.get_recv_len() != 13) {
+            if (this->udp_.get_recv_len() > 91) {
                 if (this->udp_.get_recv_len() > 0) {
                     LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len()
                               << ". raw data as following:";
