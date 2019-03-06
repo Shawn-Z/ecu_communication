@@ -104,6 +104,7 @@ bool DataDownload::durex() {
         this->pack_one.expect_vehicle_speed = 0;
         this->pack_one.thousand_times_curvature = 0;
     }
+//    this->pack_one.expect_vehicle_speed = std::min<uint8_t>(this->pack_one.expect_vehicle_speed, 10);
 }
 
 }
