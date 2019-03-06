@@ -5,17 +5,17 @@ lower_layer_receive: true
 remote_receive: true
 remote_send: true
 
-ecu_local_ip: "172.16.16.167"
-ecu_local_port: 8181
-ecu_remote_ip: "172.16.16.168"
-ecu_remote_port: 8181
+ecu_local_ip: "192.168.0.111"
+ecu_local_port: 8400
+ecu_remote_ip: "192.168.0.10"
+ecu_remote_port: 8500
 
-remote_local_ip: "172.16.16.167"
-remote_local_port: 13020
-remote_remote_ip: "172.16.16.168"
-remote_remote_port: 13020
+remote_local_ip: "192.168.0.111"
+remote_local_port: 13010
+remote_remote_ip: "192.168.0.101"
+remote_remote_port: 13010
 
-reconfig: true
+reconfig: false
 send_default_when_no_msg: true
 log_rawdata: true
 publish_rawdata: true

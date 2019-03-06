@@ -14,7 +14,7 @@ namespace ecu_communication {
     }
 
     bool Transform6t::prepareSend(ecu_communication::DataDownload *p_data_download) {
-        this->send_6t.pack[0] = 0x88;
+        this->send_6t.pack[0] = 0x08;
         this->send_6t.pack[1] = 0x00;
         this->send_6t.pack[2] = 0x00;
         this->send_6t.pack[3] = 0x06;
