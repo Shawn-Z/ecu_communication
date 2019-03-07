@@ -13,10 +13,11 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     this->paramsInit();
     this->setTimeCheckHandle();
 
+    this->params_.fake_issue = false;
+    this->params_.params_lock = true;
+    this->params_.toParamServer();
     if (this->yaml_params_.reconfig) {
         this->reconfigSrv_.setCallback(boost::bind(&CommunicationProcess::reconfigureRequest, this, _1, _2));
-        this->params_.fake_issue = false;
-        this->params_.params_lock = true;
     }
     if (this->yaml_params_.publish_rawdata) {
         this->udp_recv_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::rawdata_recv>("/udp_recv_rawdata", 1);
@@ -162,6 +163,7 @@ void CommunicationProcess::udpReceive() {
         //// todo this block is test code on 6t
         {
             if (this->udp_.get_recv_len() > 91) {
+                continue;
                 if (this->udp_.get_recv_len() > 0) {
                     LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len()
                               << ". raw data as following:";
@@ -176,6 +178,7 @@ void CommunicationProcess::udpReceive() {
 
             static Transform6t transform6t;
             if (!transform6t.receiveCheck((char *) this->udp_.buffer)) {
+                continue;
                 LOG_ERROR << "ecu receive ID error, receive raw data as following:";
                 this->sLog_.logUint8Array((char *) this->udp_.buffer, this->udp_.get_recv_len(),
                                           google::ERROR);
@@ -223,17 +226,19 @@ void CommunicationProcess::udpReceive() {
         }
 
         //// todo comment for test on 6t
-//        if (this->udp_server_.get_recv_len() != 14) {
-//            if (this->udp_server_.get_recv_len() > 0) {
-//                LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len() << ". raw data as following:";
-//                this->sLog_.logUint8Array((char *)this->udp_server_.buffer, this->udp_server_.get_recv_len(), google::ERROR);
+//        if (this->udp_.get_recv_len() != 14) {
+//            continue;
+//            if (this->udp_.get_recv_len() > 0) {
+//                LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len() << ". raw data as following:";
+//                this->sLog_.logUint8Array((char *)this->udp_.buffer, this->udp_.get_recv_len(), google::ERROR);
 //            } else {
-//                LOG_ERROR << "ecu receive length error: " << this->udp_server_.get_recv_len();
+//                LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len();
 //            }
 //            continue;
 //        }
 //        this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
         if (!this->data_upload_.dataIDCheck((char *)this->udp_.buffer)) {
+            continue;
             LOG_ERROR << "ecu receive ID error, receive raw data as following:";
             this->sLog_.logUint8Array((char *)this->udp_.buffer, this->udp_.get_recv_len(), google::ERROR);
             continue;
@@ -266,7 +271,7 @@ void CommunicationProcess::udpSend() {
         this->data_download_.init();
         this->data_download_mutex_.unlock();
     }
-    if (this->params_.fake_issue) {
+    if (this->yaml_params_.reconfig && this->params_.fake_issue) {
         this->data_download_mutex_.lock();
         fake_issue();
         this->data_download_mutex_.unlock();

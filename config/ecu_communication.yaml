@@ -17,5 +17,5 @@ remote_remote_port: 13010
 
 reconfig: false
 send_default_when_no_msg: true
-log_rawdata: true
-publish_rawdata: true
+log_rawdata: false
+publish_rawdata: false
