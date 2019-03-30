@@ -4,8 +4,8 @@
 #include <cmath>
 #include <stdint-gcc.h>
 #include <cstring>
-#include "three_one_msgs/report.h"
-#include "three_one_msgs/rawdata_recv.h"
+#include "three_one_msgs/Report.h"
+#include "three_one_msgs/RawdataRecv.h"
 #include "SHandle.hpp"
 #include "ThreeOne.hpp"
 #include "DEFINEs.hpp"
@@ -139,8 +139,8 @@ public:
     ID_calculate_type ID_calculate;
     uint64_t recv_counter;
     shawn::handle pack_handle;
-    three_one_msgs::report report;
-    three_one_msgs::rawdata_recv recv_rawdata;
+    three_one_msgs::Report report;
+    three_one_msgs::RawdataRecv recv_rawdata;
 
 
     DataUpload();

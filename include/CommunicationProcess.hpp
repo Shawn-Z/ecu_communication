@@ -11,8 +11,8 @@
 #include <dynamic_reconfigure/server.h>
 #include "ecu_communication/ecu_communicationParameters.h"
 
-#include "three_one_msgs/rawdata_recv.h"
-#include "three_one_msgs/rawdata_send.h"
+#include "three_one_msgs/RawdataRecv.h"
+#include "three_one_msgs/RawdataSend.h"
 
 #include "STime.hpp"
 #include "SLog.hpp"

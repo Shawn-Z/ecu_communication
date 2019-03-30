@@ -2,7 +2,6 @@
 
 //// todo manual gui
 namespace ecu_communication {
-//// todo some callback apply to current framework
 CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle)
     : reconfigSrv_{private_node_handle}, params_{private_node_handle} {
 
@@ -20,8 +19,8 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
         this->reconfigSrv_.setCallback(boost::bind(&CommunicationProcess::reconfigureRequest, this, _1, _2));
     }
     if (this->yaml_params_.publish_rawdata) {
-        this->udp_recv_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::rawdata_recv>("/udp_recv_rawdata", 1);
-        this->udp_send_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::rawdata_send>("/udp_send_rawdata", 1);
+        this->udp_recv_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::RawdataRecv>("/udp_recv_rawdata", 1);
+        this->udp_send_rawdata_publisher_ = this->nh_.advertise<three_one_msgs::RawdataSend>("/udp_send_rawdata", 1);
     }
 
     if (this->yaml_params_.lower_layer_receive || this->yaml_params_.lower_layer_send) {

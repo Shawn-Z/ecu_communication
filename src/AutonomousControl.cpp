@@ -19,12 +19,12 @@ void AutonomousControl::setHandles() {
 }
 
 void AutonomousControl::receive_init() {
-    this->speed_sub_ = this->nh_.subscribe<three_one_msgs::control_speed>("/speed_plan", 1, &AutonomousControl::speedCb, this);
-    this->steer_sub_ = this->nh_.subscribe<three_one_msgs::control_steer>("/steer_cmd", 1, &AutonomousControl::steerCb, this);
+    this->speed_sub_ = this->nh_.subscribe<three_one_msgs::ControlSpeed>("/speed_plan", 1, &AutonomousControl::speedCb, this);
+    this->steer_sub_ = this->nh_.subscribe<three_one_msgs::ControlSteer>("/steer_cmd", 1, &AutonomousControl::steerCb, this);
 }
 
 void AutonomousControl::dataProcess() {
-    static ros::Publisher publisher = this->nh_.advertise<three_one_msgs::report>("/ecudatareport", 1);
+    static ros::Publisher publisher = this->nh_.advertise<three_one_msgs::Report>("/ecudatareport", 1);
     if (!this->send_switch_) {
         return;
     }
@@ -77,7 +77,7 @@ bool AutonomousControl::rosmsgUpdateCheck() {
     return speed_check && steer_check;
 }
 
-void AutonomousControl::speedCb(three_one_msgs::control_speed msg) {
+void AutonomousControl::speedCb(three_one_msgs::ControlSpeed msg) {
     if (!this->receive_switch_) {
         return;
     }
@@ -93,7 +93,7 @@ void AutonomousControl::speedCb(three_one_msgs::control_speed msg) {
     this->msg_update_times.pushTimestamp(this->speed_sub_handle_);
 }
 
-void AutonomousControl::steerCb(three_one_msgs::control_steer msg) {
+void AutonomousControl::steerCb(three_one_msgs::ControlSteer msg) {
     if (!this->receive_switch_) {
         return;
     }

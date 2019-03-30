@@ -4,7 +4,7 @@
 #include <cstring>
 #include <cmath>
 #include <stdint-gcc.h>
-#include "three_one_msgs/rawdata_send.h"
+#include "three_one_msgs/RawdataSend.h"
 #include "ThreeOne.hpp"
 #include "SHandle.hpp"
 
@@ -96,7 +96,7 @@ public:
     data_download_pack_one_type pack_one;
     data_download_pack_two_type pack_two;
     uint8_t data_to_send[14];
-    three_one_msgs::rawdata_send send_rawdata;
+    three_one_msgs::RawdataSend send_rawdata;
 
     uint8_t recv_raw_data[14];
     ID_calculate_type ID_calculate;
