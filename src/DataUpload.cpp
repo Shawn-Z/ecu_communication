@@ -18,6 +18,18 @@ DataUpload::DataUpload() {
 }
 
 bool DataUpload::dataIDCheck(char *p_recv_raw_data) {
+    bool tmp_result = true;
+    memcpy(this->all_packs.all, p_recv_raw_data, sizeof(this->all_packs.all));
+    tmp_result &= (this->all_packs.pack_one.data_ID == 0x000000F0);
+    tmp_result &= (this->all_packs.pack_two.data_ID == 0x000000F1);
+    tmp_result &= (this->all_packs.pack_three.data_ID == 0x000000F2);
+    tmp_result &= (this->all_packs.pack_four.data_ID == 0x000000F3);
+    tmp_result &= (this->all_packs.pack_five.data_ID == 0x000000F4);
+    tmp_result &= (this->all_packs.pack_six.data_ID == 0x000000F5);
+    tmp_result &= (this->all_packs.pack_seven.data_ID == 0x000000F6);
+    return tmp_result;
+
+
     memcpy(this->recv_raw_data, p_recv_raw_data, sizeof(this->recv_raw_data));
     this->ID_calculate.data[0] = this->recv_raw_data[0];
     this->ID_calculate.data[1] = this->recv_raw_data[1];
@@ -62,6 +74,18 @@ bool DataUpload::dataIDCheck(char *p_recv_raw_data) {
 }
 
 void DataUpload::dataDistribution() {
+    memcpy(this->pack_one.pack, this->all_packs.pack_one.pack, sizeof(this->pack_one.pack));
+    memcpy(this->pack_two.pack, this->all_packs.pack_two.pack, sizeof(this->pack_two.pack));
+    memcpy(this->pack_three.pack, this->all_packs.pack_three.pack, sizeof(this->pack_three.pack));
+    memcpy(this->pack_four.pack, this->all_packs.pack_four.pack, sizeof(this->pack_four.pack));
+    memcpy(this->pack_five.pack, this->all_packs.pack_five.pack, sizeof(this->pack_five.pack));
+    memcpy(this->pack_six.pack, this->all_packs.pack_six.pack, sizeof(this->pack_six.pack));
+    memcpy(this->pack_seven.pack, this->all_packs.pack_one.pack, sizeof(this->pack_seven.pack));
+    ++this->recv_counter;
+    return;
+
+
+
     ++this->recv_counter;
     switch (this->pack_handle.getID()) {
         case 0: {

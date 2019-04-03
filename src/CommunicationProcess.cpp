@@ -160,82 +160,82 @@ void CommunicationProcess::udpReceive() {
         this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
 
         //// todo this block is test code on 6t
-        {
-            if (this->udp_.get_recv_len() > 91) {
-                continue;
-                if (this->udp_.get_recv_len() > 0) {
-                    LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len()
-                              << ". raw data as following:";
-                    this->sLog_.logUint8Array((char *) this->udp_.buffer, this->udp_.get_recv_len(),
-                                              google::ERROR);
-                } else {
-                    LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len();
-                }
-                continue;
-            }
-            this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
-
-            static Transform6t transform6t;
-            if (!transform6t.receiveCheck((char *) this->udp_.buffer)) {
-                continue;
-                LOG_ERROR << "ecu receive ID error, receive raw data as following:";
-                this->sLog_.logUint8Array((char *) this->udp_.buffer, this->udp_.get_recv_len(),
-                                          google::ERROR);
-                continue;
-            }
-
-            union {
-                struct {
-                    uint8_t low_byte;
-                    uint8_t high_byte;
-                };
-                uint16_t result;
-            } left_rpm_6t;
-
-            union {
-                struct {
-                    uint8_t low_byte;
-                    uint8_t high_byte;
-                };
-                uint16_t result;
-            } right_rpm_6t;
-
-            left_rpm_6t.low_byte = transform6t.receive_6t.pack[5];
-            left_rpm_6t.high_byte = transform6t.receive_6t.pack[6];
-            right_rpm_6t.low_byte = transform6t.receive_6t.pack[7];
-            right_rpm_6t.high_byte = transform6t.receive_6t.pack[8];
-            this->udp_.buffer[8] = (left_rpm_6t.result <= 12000)? 0: 1;
-            this->udp_.buffer[9] = (right_rpm_6t.result >= 12000)? 0: 1;
-
-            left_rpm_6t.result = (uint16_t)round(fabs(left_rpm_6t.result - 12000.0));
-            right_rpm_6t.result = (uint16_t)round(fabs(right_rpm_6t.result - 12000.0));
-
-            this->udp_.buffer[0] = 0x00;
-            this->udp_.buffer[1] = 0x00;
-            this->udp_.buffer[2] = 0x00;
-            this->udp_.buffer[3] = 0xF1;
-            this->udp_.buffer[4] = 0x01;
-            this->udp_.buffer[5] = 0x08;
-            this->udp_.buffer[6] = left_rpm_6t.low_byte;
-            this->udp_.buffer[7] = left_rpm_6t.high_byte;
-            this->udp_.buffer[10] = right_rpm_6t.low_byte;
-            this->udp_.buffer[11] = right_rpm_6t.high_byte;
-            this->udp_.buffer[12] = 0x00;
-            this->udp_.buffer[13] = 0x00;
-        }
+//        {
+//            if (this->udp_.get_recv_len() > 91) {
+//                continue;
+//                if (this->udp_.get_recv_len() > 0) {
+//                    LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len()
+//                              << ". raw data as following:";
+//                    this->sLog_.logUint8Array((char *) this->udp_.buffer, this->udp_.get_recv_len(),
+//                                              google::ERROR);
+//                } else {
+//                    LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len();
+//                }
+//                continue;
+//            }
+//            this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
+//
+//            static Transform6t transform6t;
+//            if (!transform6t.receiveCheck((char *) this->udp_.buffer)) {
+//                continue;
+//                LOG_ERROR << "ecu receive ID error, receive raw data as following:";
+//                this->sLog_.logUint8Array((char *) this->udp_.buffer, this->udp_.get_recv_len(),
+//                                          google::ERROR);
+//                continue;
+//            }
+//
+//            union {
+//                struct {
+//                    uint8_t low_byte;
+//                    uint8_t high_byte;
+//                };
+//                uint16_t result;
+//            } left_rpm_6t;
+//
+//            union {
+//                struct {
+//                    uint8_t low_byte;
+//                    uint8_t high_byte;
+//                };
+//                uint16_t result;
+//            } right_rpm_6t;
+//
+//            left_rpm_6t.low_byte = transform6t.receive_6t.pack[5];
+//            left_rpm_6t.high_byte = transform6t.receive_6t.pack[6];
+//            right_rpm_6t.low_byte = transform6t.receive_6t.pack[7];
+//            right_rpm_6t.high_byte = transform6t.receive_6t.pack[8];
+//            this->udp_.buffer[8] = (left_rpm_6t.result <= 12000)? 0: 1;
+//            this->udp_.buffer[9] = (right_rpm_6t.result >= 12000)? 0: 1;
+//
+//            left_rpm_6t.result = (uint16_t)round(fabs(left_rpm_6t.result - 12000.0));
+//            right_rpm_6t.result = (uint16_t)round(fabs(right_rpm_6t.result - 12000.0));
+//
+//            this->udp_.buffer[0] = 0x00;
+//            this->udp_.buffer[1] = 0x00;
+//            this->udp_.buffer[2] = 0x00;
+//            this->udp_.buffer[3] = 0xF1;
+//            this->udp_.buffer[4] = 0x01;
+//            this->udp_.buffer[5] = 0x08;
+//            this->udp_.buffer[6] = left_rpm_6t.low_byte;
+//            this->udp_.buffer[7] = left_rpm_6t.high_byte;
+//            this->udp_.buffer[10] = right_rpm_6t.low_byte;
+//            this->udp_.buffer[11] = right_rpm_6t.high_byte;
+//            this->udp_.buffer[12] = 0x00;
+//            this->udp_.buffer[13] = 0x00;
+//        }
 
         //// todo comment for test on 6t
-//        if (this->udp_.get_recv_len() != 14) {
-//            continue;
-//            if (this->udp_.get_recv_len() > 0) {
-//                LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len() << ". raw data as following:";
-//                this->sLog_.logUint8Array((char *)this->udp_.buffer, this->udp_.get_recv_len(), google::ERROR);
-//            } else {
-//                LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len();
-//            }
-//            continue;
-//        }
-//        this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
+        if (this->udp_.get_recv_len() != 98) {
+            continue;
+            if (this->udp_.get_recv_len() > 0) {
+                LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len() << ". raw data as following:";
+                this->sLog_.logUint8Array((char *)this->udp_.buffer, this->udp_.get_recv_len(), google::ERROR);
+            } else {
+                LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len();
+            }
+            continue;
+        }
+        this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
         if (!this->data_upload_.dataIDCheck((char *)this->udp_.buffer)) {
             continue;
             LOG_ERROR << "ecu receive ID error, receive raw data as following:";
