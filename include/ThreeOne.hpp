@@ -194,6 +194,12 @@ enum class spin_status {
     clockwise = 2
 };
 
+enum class control_mode {
+    ERROR = 0,
+    autonomous = 1,
+    remote = 2
+};
+
 }
 
 #endif //ECU_COMMUNICATION_THREE_ONE_HPP

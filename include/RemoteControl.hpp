@@ -9,6 +9,7 @@
 #include "SLog.hpp"
 
 #include "DEFINEs.hpp"
+#include "ThreeOne.hpp"
 #include "UDPCommunication.hpp"
 #include "DataDownload.hpp"
 #include "DataUpload.hpp"
@@ -23,9 +24,10 @@ public:
     bool send_switch_;
     bool receive_switch_;
 
-    uint8_t work_mode_;
+//    uint8_t work_mode_;
     shawn::SLog *p_log_;
-    uint8_t *p_work_mode_;
+    three_one_feedback::control_mode *p_control_mode_;
+    std::mutex *p_control_mode_mutex_;
 
     //// UDP communication data and variables
     UDPCommunication udp_;
@@ -49,12 +51,11 @@ public:
     RemoteControl();
     void init(DataDownload *p_data_download, DataUpload *p_data_upload,
               std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex,
-              shawn::SLog *p_log, uint8_t *p_work_mode);
+              shawn::SLog *p_log, three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex);
     void setHandles();
     void dataReceive();
     void dataSend();
-    void setWorkMode();
-    uint8_t getWorkMode();
+    void setControlMode();
     bool time_check();
 };
 

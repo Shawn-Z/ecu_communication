@@ -39,7 +39,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
 
     if (this->yaml_params_.upper_layer_send || this->yaml_params_.upper_layer_receive) {
-        this->autonomousControl_.init(node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_, &this->data_download_mutex_);
+        this->autonomousControl_.init(node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_, &this->data_download_mutex_, &this->control_mode_, &this->control_mode_mutex_);
         if (this->yaml_params_.upper_layer_send) {
             this->ros_publish_timer_ = this->nh_.createTimer(ros::Duration(PUBLISH_PERIOD), boost::bind(&AutonomousControl::dataProcess, &this->autonomousControl_));
         }
@@ -49,7 +49,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
 
     if (this->yaml_params_.remote_send || this->yaml_params_.remote_receive) {
-        this->remoteControl_.init(&this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_, (uint8_t *)(&this->work_mode_));
+        this->remoteControl_.init(&this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_, &this->control_mode_, &this->control_mode_mutex_);
         if (this->yaml_params_.remote_send) {
             this->remote_send_timer_ = this->nh_.createTimer(ros::Duration(REMOTE_SEND_PERIOD), boost::bind(&RemoteControl::dataSend, &this->remoteControl_));
         }
@@ -307,7 +307,7 @@ void CommunicationProcess::udpSend() {
 }
 
 void CommunicationProcess::timeCheck() {
-    if (!this->modeSelect()) {
+    if (!this->remoteControl_.time_check()) {
         this->udp_send_switch_ = false;
         LOG_ERROR << "WORK MODE ERROR!";
         return;
@@ -324,8 +324,11 @@ void CommunicationProcess::timeCheck() {
         }
     }
 
-    switch ((int)this->work_mode_) {
-        case (int)work_mode::autonomous: {
+    this->control_mode_mutex_.lock();
+    int tmp_control_mode = (int)this->control_mode_;
+    this->control_mode_mutex_.unlock();
+    switch (tmp_control_mode) {
+        case (int)three_one_feedback::control_mode::autonomous: {
             if (this->yaml_params_.upper_layer_receive) {
                 msg_update_check = this->autonomousControl_.rosmsgUpdateCheck();
                 if (!msg_update_check) {
@@ -339,7 +342,7 @@ void CommunicationProcess::timeCheck() {
             this->remoteControl_.receive_switch_ = false;
             break;
         }
-        case (int)work_mode::remote: {
+        case (int)three_one_feedback::control_mode::remote: {
             if (this->yaml_params_.remote_receive) {
                 remote_update_check = this->remoteControl_.time_check();
                 if (!remote_update_check) {
@@ -359,12 +362,12 @@ void CommunicationProcess::timeCheck() {
     }
 
     if (udp_recv_check && msg_update_check && remote_update_check) {
-        switch ((int)this->work_mode_) {
-            case (int)work_mode::autonomous: {
+        switch (tmp_control_mode) {
+            case (int)three_one_feedback::control_mode::autonomous: {
                 ROS_INFO_STREAM_THROTTLE(1, "work well: autonomous");
                 break;
             }
-            case (int)work_mode::remote: {
+            case (int)three_one_feedback::control_mode::remote: {
                 ROS_INFO_STREAM_THROTTLE(1, "work well: remote");
                 break;
             }
@@ -388,36 +391,6 @@ bool CommunicationProcess::udpReceiveCheck() {
 //    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
 
     return (udp_recv_duration_check && udp_recv_till_now_check && pack_recv_duration_check && pack_recv_till_now_check);
-}
-
-bool CommunicationProcess::modeSelect() {
-    bool mode_update_result = true;
-    mode_update_result = this->remoteControl_.time_check();
-    if (!mode_update_result) {
-        this->work_mode_ = work_mode::ERROR;
-        LOG_ERROR << "work mode not receive";
-        return false;
-    }
-
-    this->data_download_mutex_.lock();
-    uint8_t work_mode_got = this->remoteControl_.getWorkMode();
-    this->data_download_mutex_.unlock();
-
-    switch (work_mode_got) {
-        case 1: {
-            this->work_mode_ = work_mode::remote;
-            break;
-        }
-        case 2: {
-            this->work_mode_ = work_mode::autonomous;
-            break;
-        }
-        default: {
-            this->work_mode_ = work_mode::ERROR;
-            break;
-        }
-    }
-    return (this->work_mode_ != work_mode::ERROR);
 }
 
 void CommunicationProcess::fake_issue() {

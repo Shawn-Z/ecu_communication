@@ -54,19 +54,14 @@ struct yaml_params_type {
     bool publish_rawdata;
 };
 
-enum class work_mode {
-    ERROR = 0,
-    autonomous = 1,
-    remote = 2
-};
-
 class CommunicationProcess {
 public:
     CommunicationProcess(ros::NodeHandle node_handle, ros::NodeHandle private_node_handle);
     ~CommunicationProcess();
 
 private:
-    work_mode work_mode_;
+    three_one_feedback::control_mode control_mode_;
+    std::mutex control_mode_mutex_;
 
     shawn::SLog sLog_;
 

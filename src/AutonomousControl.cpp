@@ -4,12 +4,15 @@ namespace ecu_communication {
 
 void AutonomousControl::init(ros::NodeHandle node_handle,
                              DataDownload *p_data_download, DataUpload *p_data_upload,
-                             std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex) {
+                             std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex,
+                             three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex) {
     this->nh_ = node_handle;
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
     this->p_data_upload_mutex_ = p_data_upload_mutex;
     this->p_data_download_mutex_ = p_data_download_mutex;
+    this->p_control_mode_ = p_control_mode;
+    this->p_control_mode_mutex_ = p_control_mode_mutex;
     this->setHandles();
 }
 
@@ -39,6 +42,9 @@ void AutonomousControl::dataProcess() {
     this->p_data_download_mutex_->lock();
     this->reportControlData();
     this->p_data_download_mutex_->unlock();
+    this->p_control_mode_mutex_->lock();
+    this->p_data_upload_->report.control_mode = (uint8_t)(*this->p_control_mode_);
+    this->p_control_mode_mutex_->unlock();
     publisher.publish(this->p_data_upload_->report);
 }
 

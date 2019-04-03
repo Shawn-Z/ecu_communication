@@ -1,7 +1,7 @@
 #include "RemoteSend.hpp"
 
 namespace ecu_communication {
-size_t RemoteSend::prepareSend(DataUpload *p_data_upload, uint8_t *p_work_mode) {
+size_t RemoteSend::prepareSend(DataUpload *p_data_upload, three_one_feedback::control_mode *p_control_mode) {
     size_t send_len = 0;
     switch (this->pack_handle.getID()) {
         case 0: {
@@ -10,7 +10,7 @@ size_t RemoteSend::prepareSend(DataUpload *p_data_upload, uint8_t *p_work_mode) 
             this->pack_fuck.gps_week;
             this->pack_fuck.gps_ms;
             this->pack_fuck.SOC = p_data_upload->pack_two.SOC;
-            if ((*p_work_mode) == 2) {
+            if ((*p_control_mode) == three_one_feedback::control_mode::remote) {
                 this->pack_fuck.controlled_state = 1;
             } else {
                 this->pack_fuck.controlled_state = 0;

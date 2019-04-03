@@ -13,6 +13,7 @@
 #include "SLog.hpp"
 #include "SHandle.hpp"
 
+#include "ThreeOne.hpp"
 #include "DEFINEs.hpp"
 #include "DataUpload.hpp"
 #include "DataDownload.hpp"
@@ -43,10 +44,14 @@ public:
     std::mutex *p_data_upload_mutex_;
     std::mutex *p_data_download_mutex_;
 
+    three_one_feedback::control_mode *p_control_mode_;
+    std::mutex *p_control_mode_mutex_;
+
 
     void init(ros::NodeHandle node_handle,
               DataDownload *p_data_download, DataUpload *p_data_upload,
-              std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex);
+              std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex,
+              three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex);
     void setHandles();
     void receive_init();
     void dataProcess();

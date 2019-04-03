@@ -3,18 +3,18 @@
 namespace ecu_communication {
 
 RemoteControl::RemoteControl() {
-    this->work_mode_ = DEFAULT_WORK_MODE;
 }
 
 void RemoteControl::init(DataDownload *p_data_download, DataUpload *p_data_upload,
                          std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex,
-                         shawn::SLog *p_log, uint8_t *p_work_mode) {
+                         shawn::SLog *p_log, three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex) {
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
     this->p_data_download_mutex_ = p_data_download_mutex;
     this->p_data_upload_mutex_ = p_data_upload_mutex;
     this->p_log_ = p_log;
-    this->p_work_mode_ = p_work_mode;
+    this->p_control_mode_ = p_control_mode;
+    this->p_control_mode_mutex_ = p_control_mode_mutex;
     this->setHandles();
     while (!this->udp_.init()) {
         ROS_ERROR_STREAM("udp with remote init error, keep trying");
@@ -48,9 +48,9 @@ void RemoteControl::dataReceive() {
             continue;
         }
         this->pack_recv_times_.pushTimestamp(this->remoteReceive_.pack_handle);
-        this->p_data_download_mutex_->lock();
-        this->setWorkMode();
-        this->p_data_download_mutex_->unlock();
+        this->p_control_mode_mutex_->lock();
+        this->setControlMode();
+        this->p_control_mode_mutex_->unlock();
         if (!this->receive_switch_) {
             continue;
         }
@@ -61,11 +61,14 @@ void RemoteControl::dataReceive() {
 }
 
 void RemoteControl::dataSend() {
-    if ((*this->p_work_mode_) == 0) {
+    this->p_control_mode_mutex_->lock();
+    if ((*this->p_control_mode_) == three_one_feedback::control_mode::ERROR) {
+        this->p_control_mode_mutex_->unlock();
         uint8_t connect_data[] = {0xF1, 0x00};
         this->udp_.sendToRemote(connect_data, 2);
         return;
     }
+    this->p_control_mode_mutex_->unlock();
     static std::vector<uint8_t> ID_set{0,2,3,1,4,5,6,1,7,8,1,2,3,4,1,5,6,1,7,8,2,1,3,4,1,5,6,7,1,8,2,1,3,4,5,1,6,7,1,8,2,3,1,4,5,1,6,7,8,1};
     static int counter = -1;
     if (!this->send_switch_) {
@@ -77,22 +80,33 @@ void RemoteControl::dataSend() {
     }
     this->remoteSend_.pack_handle.setID(ID_set[counter]);
     this->p_data_upload_mutex_->lock();
-    size_t send_len = this->remoteSend_.prepareSend(this->p_data_upload_, this->p_work_mode_);
+    this->p_control_mode_mutex_->lock();
+    size_t send_len = this->remoteSend_.prepareSend(this->p_data_upload_, this->p_control_mode_);
     this->p_data_upload_mutex_->unlock();
+    this->p_control_mode_mutex_->unlock();
     if (!this->udp_.sendToRemote(this->remoteSend_.data_to_send, send_len)) {
         LOG_ERROR << "remote send length error: " << this->udp_.get_send_len() << ". raw data as following:";
         this->p_log_->logUint8Array((char *)this->remoteSend_.data_to_send, send_len, google::ERROR);
     }
 }
 
-void RemoteControl::setWorkMode() {
+void RemoteControl::setControlMode() {
     if (this->remoteReceive_.pack_handle.getID() == 1) {
-        this->work_mode_ = this->udp_.buffer[9];
+        switch (this->udp_.buffer[9]) {
+            case 1: {
+                (*this->p_control_mode_) = three_one_feedback::control_mode::remote;
+                break;
+            }
+            case 2: {
+                (*this->p_control_mode_) = three_one_feedback::control_mode::autonomous;
+                break;
+            }
+            default: {
+                (*this->p_control_mode_) = three_one_feedback::control_mode::ERROR;
+                break;
+            }
+        }
     }
-}
-
-uint8_t RemoteControl::getWorkMode() {
-    return this->work_mode_;
 }
 
 bool RemoteControl::time_check() {
