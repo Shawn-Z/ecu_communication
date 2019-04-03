@@ -115,6 +115,19 @@ union data_upload_pack_seven_type {
     uint8_t pack[14];
 };
 
+union all_packs_type {
+    struct {
+        data_upload_pack_one_type pack_one;
+        data_upload_pack_two_type pack_two;
+        data_upload_pack_three_type pack_three;
+        data_upload_pack_four_type pack_four;
+        data_upload_pack_five_type pack_five;
+        data_upload_pack_six_type pack_six;
+        data_upload_pack_seven_type pack_seven;
+    };
+    uint8_t all[98];
+};
+
 #ifndef ID_CALCULATE
 #define ID_CALCULATE
 union ID_calculate_type {
@@ -152,6 +165,8 @@ public:
 
     uint8_t data_to_send[14];
     void prepareSend(shawn::handle p_handle);
+
+    all_packs_type all_packs;
 };
 
 }
