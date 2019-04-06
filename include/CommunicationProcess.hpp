@@ -25,6 +25,7 @@
 #include "DataDownload.hpp"
 #include "AutonomousControl.hpp"
 #include "RemoteControl.hpp"
+#include "SerialPortCommunication.hpp"
 
 #include "Transform6t.hpp"
 
@@ -125,6 +126,10 @@ private:
     bool udpReceiveCheck();
     bool modeSelect();
     void fake_issue();
+
+    ros::Timer fuck_timer;
+    void fuck_send();
+    SerialPortCommunication serialPortCommunication;
 };
 
 }

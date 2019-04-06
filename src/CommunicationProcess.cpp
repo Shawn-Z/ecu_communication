@@ -61,6 +61,9 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
+
+//    this->serialPortCommunication.init();
+//    this->fuck_timer = this->nh_.createTimer(ros::Duration(0.001), boost::bind(&CommunicationProcess::fuck_send, this));
 }
 
 CommunicationProcess::~CommunicationProcess() {
@@ -80,6 +83,7 @@ CommunicationProcess::~CommunicationProcess() {
     LOG_WARN << "program end";
     LOG_ERROR << "program end";
     google::ShutdownGoogleLogging();
+    this->serialPortCommunication.colse();
 }
 
 void CommunicationProcess::glogInit() {
@@ -225,7 +229,7 @@ void CommunicationProcess::udpReceive() {
 //        }
 
         //// todo comment for test on 6t
-        if (this->udp_.get_recv_len() != 98) {
+        if (this->udp_.get_recv_len() != 14) {
             continue;
             if (this->udp_.get_recv_len() > 0) {
                 LOG_ERROR << "ecu receive length error: " << this->udp_.get_recv_len() << ". raw data as following:";
@@ -282,19 +286,19 @@ void CommunicationProcess::udpSend() {
 
 
     //// todo this block is test code on 6t
-    {
-        this->data_download_mutex_.lock();
-        this->autonomousControl_.transform6t.prepareSend(&this->data_download_);
-        this->data_download_mutex_.unlock();
-        this->udp_.sendToRemote(this->autonomousControl_.transform6t.send_6t.pack, 13);
-    }
+//    {
+//        this->data_download_mutex_.lock();
+//        this->autonomousControl_.transform6t.prepareSend(&this->data_download_);
+//        this->data_download_mutex_.unlock();
+//        this->udp_.sendToRemote(this->autonomousControl_.transform6t.send_6t.pack, 13);
+//    }
 
     //// todo comment for test on 6t
-//    if (!this->udp_.sendToRemote(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
-//        LOG_ERROR << "UDP send error, send length: " << this->udp_.get_send_len() << ". raw data as following:";
-//        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
-//        return;
-//    }
+    if (!this->udp_.sendToRemote(this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send))) {
+        LOG_ERROR << "UDP send error, send length: " << this->udp_.get_send_len() << ". raw data as following:";
+        this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::ERROR);
+        return;
+    }
     if (this->yaml_params_.log_rawdata) {
         LOG_INFO << "UDP send raw data log";
         this->sLog_.logUint8Array((char *)this->data_download_.data_to_send, sizeof(this->data_download_.data_to_send), google::INFO);
@@ -309,6 +313,7 @@ void CommunicationProcess::udpSend() {
 void CommunicationProcess::timeCheck() {
     if (!this->remoteControl_.time_check()) {
         this->udp_send_switch_ = false;
+        this->control_mode_ = three_one_feedback::control_mode::ERROR;
         LOG_ERROR << "WORK MODE ERROR!";
         return;
     }
@@ -424,6 +429,29 @@ void CommunicationProcess::fake_issue() {
         this->data_download_.pack_one.turn_light = this->params_.turn_light;
         this->data_download_.pack_two.tailgate_control = this->params_.tailgate;
     }
+}
+
+void CommunicationProcess::fuck_send() {
+    static std::string tmp1 = "$GEAR,";
+    static std::string tmp2 = ",";
+    static std::string tmp3 = ",END";
+    static std::string qianjing = "0";
+    static std::string houtui = "1";
+    std::string data_send = tmp1;
+    static int left_gear;
+    static int right_gear;
+
+    this->data_upload_mutex_.lock();
+    left_gear = this->data_upload_.pack_two.left_motor_gear;
+    right_gear = this->data_upload_.pack_two.right_motor_gear;
+    this->data_upload_mutex_.unlock();
+
+    data_send += (left_gear == 0? qianjing : houtui);
+    data_send += tmp2;
+    data_send += (right_gear == 0? qianjing : houtui);
+    data_send += tmp3;
+
+    this->serialPortCommunication.send(data_send.c_str(), 13);
 }
 
 }
