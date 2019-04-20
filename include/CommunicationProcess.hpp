@@ -124,7 +124,6 @@ private:
     void udpSend();
     void timeCheck();
     bool udpReceiveCheck();
-    bool modeSelect();
     void fake_issue();
 
     ros::Timer fuck_timer;

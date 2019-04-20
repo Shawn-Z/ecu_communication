@@ -25,7 +25,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
     if (this->yaml_params_.lower_layer_receive || this->yaml_params_.lower_layer_send) {
         while (!this->udp_.init()) {
-            ROS_ERROR_STREAM("udp with ecu init error, keep trying");
+            ROS_INFO_STREAM_THROTTLE(1.2, "udp with ecu init error, keep trying");
         }
         if (this->yaml_params_.lower_layer_receive) {
             this->udp_receive_thread = std::thread(&CommunicationProcess::udpReceive, this);
@@ -62,7 +62,9 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
 
+//    this->control_mode_mutex_.lock();
 //    this->control_mode_ = three_one_feedback::control_mode::autonomous;
+//    this->control_mode_mutex_.unlock();
 
 //    this->serialPortCommunication.init();
 //    this->fuck_timer = this->nh_.createTimer(ros::Duration(0.001), boost::bind(&CommunicationProcess::fuck_send, this));
@@ -313,6 +315,11 @@ void CommunicationProcess::udpSend() {
 }
 
 void CommunicationProcess::timeCheck() {
+    static bool auto_disconnect_mark = false;
+    static shawn::STime auto_disconnect_timer;
+    static bool remote_disconnect_mark = false;
+    static shawn::STime remote_disconnect_timer;
+
     if (!this->remoteControl_.time_check()) {
         this->udp_send_switch_ = false;
         this->control_mode_ = three_one_feedback::control_mode::ERROR;
@@ -340,6 +347,18 @@ void CommunicationProcess::timeCheck() {
                 msg_update_check = this->autonomousControl_.rosmsgUpdateCheck();
                 if (!msg_update_check) {
                     LOG_ERROR << "msg receive from ros abnormal";
+                    if (!auto_disconnect_mark) {
+                        auto_disconnect_timer.setSimpleStartTimePoint();
+                        auto_disconnect_mark = true;
+                    }
+                } else {
+                    if (auto_disconnect_mark) {
+                        if (auto_disconnect_timer.getSimpleDurationMs() < 10000) {
+                            msg_update_check = false;
+                        } else {
+                            auto_disconnect_mark = false;
+                        }
+                    }
                 }
             }
             this->autonomousControl_.send_switch_ = udp_recv_check;
@@ -354,6 +373,18 @@ void CommunicationProcess::timeCheck() {
                 remote_update_check = this->remoteControl_.time_check();
                 if (!remote_update_check) {
                     LOG_ERROR << "udp receive from remote abnormal";
+                    if (!remote_disconnect_mark) {
+                        remote_disconnect_timer.setSimpleStartTimePoint();
+                        remote_disconnect_mark = true;
+                    }
+                } else {
+                    if (remote_disconnect_mark) {
+                        if (remote_disconnect_timer.getSimpleDurationMs() < 10000) {
+                            remote_update_check = false;
+                        } else {
+                            remote_disconnect_mark = false;
+                        }
+                    }
                 }
             }
             this->autonomousControl_.send_switch_ = udp_recv_check;
@@ -364,6 +395,12 @@ void CommunicationProcess::timeCheck() {
             break;
         }
         default: {
+            this->autonomousControl_.send_switch_ = udp_recv_check;
+            this->remoteControl_.send_switch_ = udp_recv_check;
+            this->udp_send_switch_ = false;
+            this->autonomousControl_.receive_switch_ = false;
+            this->remoteControl_.receive_switch_ = false;
+            LOG_ERROR << "error mode";
             break;
         }
     }

@@ -17,7 +17,7 @@ void RemoteControl::init(DataDownload *p_data_download, DataUpload *p_data_uploa
     this->p_control_mode_mutex_ = p_control_mode_mutex;
     this->setHandles();
     while (!this->udp_.init()) {
-        ROS_ERROR_STREAM("udp with remote init error, keep trying");
+        ROS_INFO_STREAM_THROTTLE(1.2, "udp with remote init error, keep trying");
     }
 }
 
@@ -36,13 +36,11 @@ void RemoteControl::dataReceive() {
         this->udp_.recv();
         this->udp_recv_times_.pushTimestamp(this->udp_recv_handle_);
         if ((this->udp_.get_recv_len() > 512) || (this->udp_.get_recv_len() < 1)) {
-            continue;
             LOG_ERROR << "remote receive length error: " << this->udp_.get_recv_len();
             continue;
         }
         this->udp_recv_times_.pushTimestamp(this->udp_recv_correct_handle_);
         if (!this->remoteReceive_.receiveIDCheck((char *)this->udp_.buffer, this->udp_.get_recv_len())) {
-            continue;
             LOG_ERROR << "dataID for remote illegal, receive raw data as following:";
             this->p_log_->logUint8Array((char *)this->udp_.buffer, this->udp_.get_recv_len(), google::ERROR);
             continue;
