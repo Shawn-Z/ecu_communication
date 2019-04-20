@@ -222,27 +222,27 @@ void DataUpload::dataToMsg() {
     this->report.motion.mechanical_brake = this->pack_one.mechanical_brake * 0.1;
 //    this->report.motion.vehicle_speed = this->pack_one.vehicle_speed * 0.1;
     //// todo comment for 6t
-//    this->report.motion.left_wheel_speed =
-//            ((this->pack_two.left_motor_gear == (uint8_t)three_one_feedback::left_wheel_rotate::forward)? 1: -1) *
-//            this->pack_two.left_motor_actual_speed * RPM_TO_SPEED;
-//    this->report.motion.right_wheel_speed =
-//            ((this->pack_two.right_motor_gear == (uint8_t)three_one_feedback::right_wheel_rotate ::forward)? 1: -1) *
-//            this->pack_two.right_motor_actual_speed * RPM_TO_SPEED;
-
-    //// todo this block for 6t test
     this->report.motion.left_wheel_speed =
             ((this->pack_two.left_motor_gear == (uint8_t)three_one_feedback::left_wheel_rotate::forward)? 1: -1) *
-            this->pack_two.left_motor_actual_speed / 148.5 / 3.6;
+            this->pack_two.left_motor_actual_speed * RPM_TO_SPEED;
     this->report.motion.right_wheel_speed =
             ((this->pack_two.right_motor_gear == (uint8_t)three_one_feedback::right_wheel_rotate ::forward)? 1: -1) *
-            this->pack_two.right_motor_actual_speed / 148.5 / 3.6;
-    this->report.motion.current_gear = (uint8_t)three_one_feedback::current_gear::N;
-    if ((this->report.motion.left_wheel_speed <= 0) && (this->report.motion.right_wheel_speed <= 0)) {
-        this->report.motion.current_gear = (uint8_t)three_one_feedback::current_gear::R;
-    }
-    if ((this->report.motion.left_wheel_speed >= 0) && (this->report.motion.right_wheel_speed >= 0)) {
-        this->report.motion.current_gear = (uint8_t)three_one_feedback::current_gear::D;
-    }
+            this->pack_two.right_motor_actual_speed * RPM_TO_SPEED;
+
+    //// todo this block for 6t test
+//    this->report.motion.left_wheel_speed =
+//            ((this->pack_two.left_motor_gear == (uint8_t)three_one_feedback::left_wheel_rotate::forward)? 1: -1) *
+//            this->pack_two.left_motor_actual_speed / 148.5 / 3.6;
+//    this->report.motion.right_wheel_speed =
+//            ((this->pack_two.right_motor_gear == (uint8_t)three_one_feedback::right_wheel_rotate ::forward)? 1: -1) *
+//            this->pack_two.right_motor_actual_speed / 148.5 / 3.6;
+//    this->report.motion.current_gear = (uint8_t)three_one_feedback::current_gear::N;
+//    if ((this->report.motion.left_wheel_speed <= 0) && (this->report.motion.right_wheel_speed <= 0)) {
+//        this->report.motion.current_gear = (uint8_t)three_one_feedback::current_gear::R;
+//    }
+//    if ((this->report.motion.left_wheel_speed >= 0) && (this->report.motion.right_wheel_speed >= 0)) {
+//        this->report.motion.current_gear = (uint8_t)three_one_feedback::current_gear::D;
+//    }
 
 
 
@@ -297,6 +297,27 @@ void DataUpload::dataToMsg() {
 
     this->report.give_back.left_wheel_expect_speed = this->pack_one.left_wheel_expect_speed * 0.001;
     this->report.give_back.right_wheel_expect_speed = this->pack_one.right_wheel_expect_speed * 0.001;
+
+    //// todo report three_one speed
+    this->report.motion.vehicle_speed = this->pack_one.vehicle_speed / 10.0;
+    double l_plus_r = this->report.motion.left_wheel_speed + this->report.motion.right_wheel_speed;
+    double l_minus_r = this->report.motion.left_wheel_speed - this->report.motion.right_wheel_speed;
+    if (fabs(l_plus_r) < DBL_EPSILON) {
+        l_plus_r = ((l_plus_r > 0)? 1: -1) * DBL_EPSILON;
+    }
+    if (this->report.motion.spin == (uint8_t)(three_one_feedback::spin_status::not_spin)) {
+        if (this->pack_one.gear == (uint8_t)three_one_feedback::current_gear::R) {
+            this->report.motion.curvature = l_minus_r / l_plus_r / 0.85;
+        } else {
+            this->report.motion.curvature = -l_minus_r / l_plus_r / 0.85;
+        }
+    } else {
+        if (this->report.motion.spin == (uint8_t)(three_one_feedback::spin_status::counterclockwise)) {
+            this->report.motion.curvature = FLT_MAX;
+        } else {
+            this->report.motion.curvature = -FLT_MAX;
+        }
+    }
 }
 
 void DataUpload::prepareSend(shawn::handle p_handle) {

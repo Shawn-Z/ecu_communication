@@ -62,6 +62,8 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
 
+//    this->control_mode_ = three_one_feedback::control_mode::autonomous;
+
 //    this->serialPortCommunication.init();
 //    this->fuck_timer = this->nh_.createTimer(ros::Duration(0.001), boost::bind(&CommunicationProcess::fuck_send, this));
 }

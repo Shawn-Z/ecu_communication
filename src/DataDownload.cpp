@@ -20,13 +20,13 @@ void DataDownload::init() {
     this->pack_one.expect_vehicle_speed = 0;
     this->pack_one.expect_left_speed = 0;
     this->pack_one.expect_right_speed = 0;
-    this->pack_one.work_mode = (int)three_one_control::work_mode::halt;
+    this->pack_one.work_mode = (int)three_one_control::work_mode::curvature_and_vehicle_speed;
     this->pack_one.right_wheel_rotate = (int)three_one_control::right_wheel_rotate::forward;
     this->pack_one.left_wheel_rotate = (int)three_one_control::left_wheel_rotate::forward;
     this->pack_one.vehicle_turn_to = (int)three_one_control::vehicle_turn_to::left;
     this->pack_one.vehicle_gear = (int)three_one_control::vehicle_gear::N;
     this->pack_one.turn_light = (int)three_one_control::turn_light::all_off;
-    this->pack_one.wide_taillight = (int)three_one_control::wide_taillight::off;
+    this->pack_one.wide_taillight = (int)three_one_control::wide_taillight::on;
     this->pack_one.forward_big_light = (int)three_one_control::forward_big_light::off;
     this->pack_one.ring_control = (int)three_one_control::ring_control::off;
     this->pack_one.parking_control = (int)three_one_control::parking_control::off;
@@ -104,7 +104,8 @@ bool DataDownload::durex() {
         this->pack_one.expect_vehicle_speed = 0;
         this->pack_one.thousand_times_curvature = 0;
     }
-//    this->pack_one.expect_vehicle_speed = std::min<uint8_t>(this->pack_one.expect_vehicle_speed, 10);
+    this->pack_one.expect_vehicle_speed = std::min<uint8_t>(this->pack_one.expect_vehicle_speed, 120);
+    this->pack_one.thousand_times_curvature = std::min<uint16_t>(this->pack_one.thousand_times_curvature, 1250);
 }
 
 }

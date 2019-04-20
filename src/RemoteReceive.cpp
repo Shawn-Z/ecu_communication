@@ -29,6 +29,13 @@ void RemoteReceive::dataDistribution(char *p_recv_raw_data, DataDownload *p_data
             p_data_download->pack_one.work_mode = this->pack_one.work_mode;
             p_data_download->pack_one.vehicle_gear = this->pack_one.vehicle_gear;
             p_data_download->pack_one.vehicle_turn_to = this->pack_one.vehicle_turn_to;
+            if (p_data_download->pack_one.vehicle_gear == (uint8_t)(three_one_control::vehicle_gear::R)) {
+                if (p_data_download->pack_one.vehicle_turn_to == (uint8_t)(three_one_control::vehicle_turn_to::left)) {
+                    p_data_download->pack_one.vehicle_turn_to = (uint8_t)(three_one_control::vehicle_turn_to::right);
+                } else {
+                    p_data_download->pack_one.vehicle_turn_to = (uint8_t)(three_one_control::vehicle_turn_to::left);
+                }
+            }
             p_data_download->pack_one.parking_control = this->pack_one.parking_control;
             p_data_download->pack_one.ring_control = this->pack_one.ring_control;
             p_data_download->pack_one.forward_big_light = this->pack_one.forward_big_light;
