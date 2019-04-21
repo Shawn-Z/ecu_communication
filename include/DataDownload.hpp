@@ -108,7 +108,7 @@ public:
     void init();
     void prepareSend(shawn::handle p_handle);
 
-    bool durex();
+    bool durex(bool need_durex);
 };
 
 }

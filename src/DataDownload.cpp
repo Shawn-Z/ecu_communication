@@ -99,10 +99,10 @@ void DataDownload::dataDistribution() {
     }
 }
 
-bool DataDownload::durex() {
-    if ((this->pack_one.work_mode != 1) || (this->pack_one.parking_control == (uint8_t)three_one_control::parking_control::on)) {
+bool DataDownload::durex(bool need_durex) {
+    if (need_durex || (this->pack_one.work_mode != 1) || (this->pack_one.parking_control == (uint8_t)three_one_control::parking_control::on)) {
         this->pack_one.expect_vehicle_speed = 0;
-        this->pack_one.thousand_times_curvature = 0;
+        this->pack_one.thousand_times_curvature = std::min<uint16_t>(this->pack_one.thousand_times_curvature, 1250);
     }
     this->pack_one.expect_vehicle_speed = std::min<uint8_t>(this->pack_one.expect_vehicle_speed, 120);
     this->pack_one.thousand_times_curvature = std::min<uint16_t>(this->pack_one.thousand_times_curvature, 1250);

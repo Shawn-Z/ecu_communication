@@ -284,7 +284,9 @@ void CommunicationProcess::udpSend() {
         this->data_download_mutex_.unlock();
     }
     this->data_download_mutex_.lock();
-    this->data_download_.durex();
+    this->data_upload_mutex_.lock();
+    this->data_download_.durex(this->data_upload_.pack_seven.park_status);
+    this->data_upload_mutex_.unlock();
     this->data_download_.prepareSend(this->udp_pack_handle_);
     this->data_download_mutex_.unlock();
 
