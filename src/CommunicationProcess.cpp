@@ -62,9 +62,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
 
-//    this->control_mode_mutex_.lock();
-//    this->control_mode_ = three_one_feedback::control_mode::autonomous;
-//    this->control_mode_mutex_.unlock();
+
 
 //    this->serialPortCommunication.init();
 //    this->fuck_timer = this->nh_.createTimer(ros::Duration(0.001), boost::bind(&CommunicationProcess::fuck_send, this));
@@ -120,6 +118,7 @@ void CommunicationProcess::paramsInit() {
     tmp_result &= this->private_nh_.getParam("send_default_when_no_msg", this->yaml_params_.send_default_when_no_msg);
     tmp_result &= this->private_nh_.getParam("log_rawdata", this->yaml_params_.log_rawdata);
     tmp_result &= this->private_nh_.getParam("publish_rawdata", this->yaml_params_.publish_rawdata);
+    tmp_result &= this->private_nh_.getParam("force_autonomous", this->yaml_params_.force_autonomous);
 
     if (!tmp_result) {
         ROS_ERROR_STREAM("param not retrieved");
@@ -137,6 +136,13 @@ void CommunicationProcess::paramsInit() {
     this->remoteControl_.udp_.params.remote_port = this->yaml_params_.remote_remote_port;
 
     this->udp_send_switch_ = false;
+
+    if (this->yaml_params_.force_autonomous) {
+        this->yaml_params_.remote_receive = false;
+        this->control_mode_mutex_.lock();
+        this->control_mode_ = three_one_feedback::control_mode::autonomous;
+        this->control_mode_mutex_.unlock();
+    }
     //// todo log params
 }
 
@@ -322,20 +328,26 @@ void CommunicationProcess::timeCheck() {
     static bool remote_disconnect_mark = false;
     static shawn::STime remote_disconnect_timer;
 
-    bool udp_recv_check = udpReceiveCheck();
-    bool msg_update_check = this->autonomousControl_.rosmsgUpdateCheck();
-    bool remote_update_check = this->remoteControl_.time_check();
+    bool udp_recv_check = true;
+    bool msg_update_check = true;
+    bool remote_update_check = true;
+    if (this->yaml_params_.lower_layer_receive) {
+        udp_recv_check = udpReceiveCheck();
+    }
+    if (this->yaml_params_.upper_layer_receive) {
+        msg_update_check = this->autonomousControl_.rosmsgUpdateCheck();
+    }
+    if (this->yaml_params_.remote_receive) {
+        remote_update_check = this->remoteControl_.time_check();
+    }
 
     if (!remote_update_check) {
         this->control_mode_mutex_.lock();
         this->control_mode_ = three_one_feedback::control_mode::remote;
         this->control_mode_mutex_.unlock();
     }
-
-    if (this->yaml_params_.lower_layer_receive) {
-        if (!udp_recv_check) {
-            LOG_ERROR << "disconnect with vehicle";
-        }
+    if (!udp_recv_check) {
+        LOG_ERROR << "disconnect with vehicle";
     }
 
     this->control_mode_mutex_.lock();
@@ -343,20 +355,18 @@ void CommunicationProcess::timeCheck() {
     this->control_mode_mutex_.unlock();
     switch (tmp_control_mode) {
         case (int)three_one_feedback::control_mode::autonomous: {
-            if (this->yaml_params_.upper_layer_receive) {
-                if (!msg_update_check) {
-                    LOG_ERROR << "msg receive from ros abnormal";
-                    if (!auto_disconnect_mark) {
-                        auto_disconnect_timer.setSimpleStartTimePoint();
-                        auto_disconnect_mark = true;
-                    }
-                } else {
-                    if (auto_disconnect_mark) {
-                        if (auto_disconnect_timer.getSimpleDurationMs() < 3000) {
-                            msg_update_check = false;
-                        } else {
-                            auto_disconnect_mark = false;
-                        }
+            if (!msg_update_check) {
+                LOG_ERROR << "msg receive from ros abnormal";
+                if (!auto_disconnect_mark) {
+                    auto_disconnect_timer.setSimpleStartTimePoint();
+                    auto_disconnect_mark = true;
+                }
+            } else {
+                if (auto_disconnect_mark) {
+                    if (auto_disconnect_timer.getSimpleDurationMs() < 3000) {
+                        msg_update_check = false;
+                    } else {
+                        auto_disconnect_mark = false;
                     }
                 }
             }
@@ -368,20 +378,18 @@ void CommunicationProcess::timeCheck() {
             break;
         }
         case (int)three_one_feedback::control_mode::remote: {
-            if (this->yaml_params_.remote_receive) {
-                if (!remote_update_check) {
-                    LOG_ERROR << "disconnect with remote(207)!";
-                    if (!remote_disconnect_mark) {
-                        remote_disconnect_timer.setSimpleStartTimePoint();
-                        remote_disconnect_mark = true;
-                    }
-                } else {
-                    if (remote_disconnect_mark) {
-                        if (remote_disconnect_timer.getSimpleDurationMs() < 4000) {
-                            remote_update_check = false;
-                        } else {
-                            remote_disconnect_mark = false;
-                        }
+            if (!remote_update_check) {
+                LOG_ERROR << "disconnect with remote(207)!";
+                if (!remote_disconnect_mark) {
+                    remote_disconnect_timer.setSimpleStartTimePoint();
+                    remote_disconnect_mark = true;
+                }
+            } else {
+                if (remote_disconnect_mark) {
+                    if (remote_disconnect_timer.getSimpleDurationMs() < 4000) {
+                        remote_update_check = false;
+                    } else {
+                        remote_disconnect_mark = false;
                     }
                 }
             }

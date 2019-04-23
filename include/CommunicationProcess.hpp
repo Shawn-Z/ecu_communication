@@ -53,6 +53,7 @@ struct yaml_params_type {
     bool send_default_when_no_msg;
     bool log_rawdata;
     bool publish_rawdata;
+    bool force_autonomous;
 };
 
 class CommunicationProcess {
