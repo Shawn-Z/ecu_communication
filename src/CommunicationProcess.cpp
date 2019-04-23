@@ -7,6 +7,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
     this->nh_ = node_handle;
     this->private_nh_ = private_node_handle;
+    this->three_one_control_ = true;
 
     this->glogInit();
     this->paramsInit();
@@ -274,6 +275,9 @@ void CommunicationProcess::udpReceive() {
 
 
 void CommunicationProcess::udpSend() {
+    if (three_one_control_) {
+        return;
+    }
     if (!(this->udp_send_switch_ || this->yaml_params_.send_default_when_no_msg || this->params_.fake_issue)) {
         return;
     }
@@ -341,18 +345,37 @@ void CommunicationProcess::timeCheck() {
         remote_update_check = this->remoteControl_.time_check();
     }
 
-    if (!remote_update_check) {
-        this->control_mode_mutex_.lock();
-        this->control_mode_ = three_one_feedback::control_mode::remote;
-        this->control_mode_mutex_.unlock();
-    }
-    if (!udp_recv_check) {
-        LOG_ERROR << "disconnect with vehicle";
-    }
-
     this->control_mode_mutex_.lock();
     int tmp_control_mode = (int)this->control_mode_;
     this->control_mode_mutex_.unlock();
+    switch (tmp_control_mode) {
+        case (int)three_one_feedback::control_mode::autonomous: {
+            this->autonomousControl_.send_switch_ = udp_recv_check;
+            this->remoteControl_.send_switch_ = udp_recv_check;
+            this->autonomousControl_.receive_switch_ = true;
+            this->remoteControl_.receive_switch_ = false;
+            break;
+        }
+        case (int)three_one_feedback::control_mode::remote: {
+            this->autonomousControl_.send_switch_ = udp_recv_check;
+            this->remoteControl_.send_switch_ = udp_recv_check;
+            this->autonomousControl_.receive_switch_ = false;
+            this->remoteControl_.receive_switch_ = true;
+            break;
+        }
+        default: {
+            this->autonomousControl_.send_switch_ = udp_recv_check;
+            this->remoteControl_.send_switch_ = udp_recv_check;
+            this->autonomousControl_.receive_switch_ = false;
+            this->remoteControl_.receive_switch_ = false;
+            LOG_ERROR << "unrecognized received mode: " << tmp_control_mode;
+            break;
+        }
+    }
+
+    if (!remote_update_check) {
+        tmp_control_mode = (int)three_one_feedback::control_mode::remote;
+    }
     switch (tmp_control_mode) {
         case (int)three_one_feedback::control_mode::autonomous: {
             if (!msg_update_check) {
@@ -370,11 +393,7 @@ void CommunicationProcess::timeCheck() {
                     }
                 }
             }
-            this->autonomousControl_.send_switch_ = udp_recv_check;
-            this->remoteControl_.send_switch_ = udp_recv_check;
             this->udp_send_switch_ = msg_update_check;
-            this->autonomousControl_.receive_switch_ = true;
-            this->remoteControl_.receive_switch_ = false;
             break;
         }
         case (int)three_one_feedback::control_mode::remote: {
@@ -393,20 +412,11 @@ void CommunicationProcess::timeCheck() {
                     }
                 }
             }
-            this->autonomousControl_.send_switch_ = udp_recv_check;
-            this->remoteControl_.send_switch_ = udp_recv_check;
             this->udp_send_switch_ = remote_update_check;
-            this->autonomousControl_.receive_switch_ = false;
-            this->remoteControl_.receive_switch_ = true;
             break;
         }
         default: {
-            this->autonomousControl_.send_switch_ = udp_recv_check;
-            this->remoteControl_.send_switch_ = udp_recv_check;
             this->udp_send_switch_ = false;
-            this->autonomousControl_.receive_switch_ = false;
-            this->remoteControl_.receive_switch_ = false;
-            LOG_ERROR << "unrecognized received mode: " << tmp_control_mode;
             break;
         }
     }
@@ -425,6 +435,17 @@ void CommunicationProcess::timeCheck() {
                 break;
             }
         }
+    }
+
+    this->data_upload_mutex_.lock();
+    this->three_one_control_ = (this->data_upload_.pack_seven.operation_mode == (uint8_t)three_one_feedback::operation_mode::three_one);
+    this->data_upload_mutex_.unlock();
+    if (this->three_one_control_) {
+        ROS_WARN_STREAM_THROTTLE(CHECK_PERIOD, "controlled by 31");
+    }
+    if (!udp_recv_check) {
+        this->three_one_control_ = true;
+        LOG_ERROR << "disconnect with vehicle";
     }
 }
 

@@ -62,6 +62,7 @@ public:
     ~CommunicationProcess();
 
 private:
+    bool three_one_control_;
     three_one_feedback::control_mode control_mode_;
     std::mutex control_mode_mutex_;
 
