@@ -39,8 +39,11 @@ void DataDownload::init() {
     this->pack_two.suspension_work_mode_detail = (int)three_one_control::suspension_up_down::keep;
     this->pack_two.suspension_work_mode = (int)three_one_control::suspension_work_mode::up_down;
     this->pack_two.tailgate_control = (int)three_one_control::tailgate_control::keep;
-    this->pack_two.fix_two_chamber_valve = (int)three_one_control::fix_two_chamber_valve::fixed;
+    this->pack_two.fix_two_chamber_valve = (int)three_one_control::fix_two_chamber_valve::not_fixed;
     this->pack_two.brake = 0;
+    this->pack_two.weapon_330 = (int)three_one_control::weapon_330::off;
+    this->pack_two.entrenchment = (int)three_one_control::entrenchment::disable;
+    this->pack_two.weapon_28 = (int)three_one_control::weapon_28::off;
 }
 
 void DataDownload::prepareSend(shawn::handle p_handle) {
@@ -99,12 +102,37 @@ void DataDownload::dataDistribution() {
     }
 }
 
-bool DataDownload::durex(bool need_durex) {
-    if (need_durex || (this->pack_one.work_mode != 1) || (this->pack_one.parking_control == (uint8_t)three_one_control::parking_control::on)) {
+bool DataDownload::durex(bool move, bool parked_or_halted) {
+    static std::vector<bool> history_move(50, true);
+    history_move.erase(history_move.begin());
+    history_move.emplace_back(move);
+    bool not_fully_stop = move;
+    for (auto cell: history_move) {
+        not_fully_stop |= cell;
+    }
+    //todo
+    bool need_force_stop = (this->pack_one.parking_control == (uint8_t)three_one_control::parking_control::on) ||
+                     (this->pack_one.work_mode != (uint8_t)three_one_control::work_mode::curvature_and_vehicle_speed);
+    if (need_force_stop && not_fully_stop) {
         this->pack_one.expect_vehicle_speed = 0;
         this->pack_one.thousand_times_curvature = std::min<uint16_t>(this->pack_one.thousand_times_curvature, 1250);
+        this->pack_one.work_mode = (uint8_t)three_one_control::work_mode::halt;
+        this->pack_one.parking_control = (uint8_t)three_one_control::parking_control::off;
     }
-    this->pack_one.expect_vehicle_speed = std::min<uint8_t>(this->pack_one.expect_vehicle_speed, 120);
+    if (need_force_stop && (!not_fully_stop)) {
+        this->pack_one.expect_vehicle_speed = 0;
+        this->pack_one.thousand_times_curvature = std::min<uint16_t>(this->pack_one.thousand_times_curvature, 1250);
+        this->pack_one.work_mode = (uint8_t)three_one_control::work_mode::curvature_and_vehicle_speed;
+        this->pack_one.parking_control = (uint8_t)three_one_control::parking_control::on;
+    }
+    if (parked_or_halted) {
+        this->pack_one.expect_vehicle_speed = std::min<uint8_t>(this->pack_one.expect_vehicle_speed, 1);
+        this->pack_one.thousand_times_curvature = std::min<uint8_t>(this->pack_one.thousand_times_curvature, 100);
+    }
+    if (this->pack_one.vehicle_gear == (uint8_t)three_one_control::vehicle_gear::N) {
+        this->pack_one.expect_vehicle_speed = 0;
+    }
+    this->pack_one.expect_vehicle_speed = std::min<uint8_t>(this->pack_one.expect_vehicle_speed, 50);
     this->pack_one.thousand_times_curvature = std::min<uint16_t>(this->pack_one.thousand_times_curvature, 1250);
 }
 

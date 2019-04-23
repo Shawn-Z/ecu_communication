@@ -285,7 +285,7 @@ void CommunicationProcess::udpSend() {
     }
     this->data_download_mutex_.lock();
     this->data_upload_mutex_.lock();
-    this->data_download_.durex(this->data_upload_.pack_seven.park_status);
+    this->data_download_.durex((this->data_upload_.pack_two.left_motor_actual_speed > 10) || (this->data_upload_.pack_two.right_motor_actual_speed > 10), (this->data_upload_.pack_seven.park_status == (uint8_t)three_one_feedback::park_status::parked));
     this->data_upload_mutex_.unlock();
     this->data_download_.prepareSend(this->udp_pack_handle_);
     this->data_download_mutex_.unlock();
@@ -322,21 +322,19 @@ void CommunicationProcess::timeCheck() {
     static bool remote_disconnect_mark = false;
     static shawn::STime remote_disconnect_timer;
 
-    if (!this->remoteControl_.time_check()) {
-        this->udp_send_switch_ = false;
-        this->control_mode_ = three_one_feedback::control_mode::ERROR;
-        LOG_ERROR << "WORK MODE ERROR!";
-        return;
+    bool udp_recv_check = udpReceiveCheck();
+    bool msg_update_check = this->autonomousControl_.rosmsgUpdateCheck();
+    bool remote_update_check = this->remoteControl_.time_check();
+
+    if (!remote_update_check) {
+        this->control_mode_mutex_.lock();
+        this->control_mode_ = three_one_feedback::control_mode::remote;
+        this->control_mode_mutex_.unlock();
     }
 
-    bool udp_recv_check = true;
-    bool msg_update_check = true;
-    bool remote_update_check = true;
-
     if (this->yaml_params_.lower_layer_receive) {
-        udp_recv_check = udpReceiveCheck();
         if (!udp_recv_check) {
-            LOG_ERROR << "udp receive from car abnormal";
+            LOG_ERROR << "disconnect with vehicle";
         }
     }
 
@@ -346,7 +344,6 @@ void CommunicationProcess::timeCheck() {
     switch (tmp_control_mode) {
         case (int)three_one_feedback::control_mode::autonomous: {
             if (this->yaml_params_.upper_layer_receive) {
-                msg_update_check = this->autonomousControl_.rosmsgUpdateCheck();
                 if (!msg_update_check) {
                     LOG_ERROR << "msg receive from ros abnormal";
                     if (!auto_disconnect_mark) {
@@ -355,7 +352,7 @@ void CommunicationProcess::timeCheck() {
                     }
                 } else {
                     if (auto_disconnect_mark) {
-                        if (auto_disconnect_timer.getSimpleDurationMs() < 10000) {
+                        if (auto_disconnect_timer.getSimpleDurationMs() < 3000) {
                             msg_update_check = false;
                         } else {
                             auto_disconnect_mark = false;
@@ -372,16 +369,15 @@ void CommunicationProcess::timeCheck() {
         }
         case (int)three_one_feedback::control_mode::remote: {
             if (this->yaml_params_.remote_receive) {
-                remote_update_check = this->remoteControl_.time_check();
                 if (!remote_update_check) {
-                    LOG_ERROR << "udp receive from remote abnormal";
+                    LOG_ERROR << "disconnect with remote(207)!";
                     if (!remote_disconnect_mark) {
                         remote_disconnect_timer.setSimpleStartTimePoint();
                         remote_disconnect_mark = true;
                     }
                 } else {
                     if (remote_disconnect_mark) {
-                        if (remote_disconnect_timer.getSimpleDurationMs() < 10000) {
+                        if (remote_disconnect_timer.getSimpleDurationMs() < 4000) {
                             remote_update_check = false;
                         } else {
                             remote_disconnect_mark = false;
@@ -402,7 +398,7 @@ void CommunicationProcess::timeCheck() {
             this->udp_send_switch_ = false;
             this->autonomousControl_.receive_switch_ = false;
             this->remoteControl_.receive_switch_ = false;
-            LOG_ERROR << "error mode";
+            LOG_ERROR << "unrecognized received mode: " << tmp_control_mode;
             break;
         }
     }
@@ -418,7 +414,6 @@ void CommunicationProcess::timeCheck() {
                 break;
             }
             default: {
-                LOG_ERROR << "work mode logic error";
                 break;
             }
         }

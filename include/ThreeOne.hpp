@@ -144,6 +144,21 @@ enum class fix_two_chamber_valve {
     fixed = 1
 };
 
+enum class weapon_330 {
+    off = 0,
+    on = 1
+};
+
+enum class entrenchment {
+    disable = 0,
+    enable = 1
+};
+
+enum class weapon_28 {
+    off = 0,
+    on = 1
+};
+
 }
 
 namespace three_one_feedback {
@@ -198,6 +213,31 @@ enum class control_mode {
     ERROR = 0,
     autonomous = 1,
     remote = 2
+};
+
+enum class operation_mode {
+    three_one = 0,
+    ours = 1
+};
+
+enum class two_chamber_valve {
+    not_fixed = 0,
+    fixed = 1
+};
+
+enum class weapon_330 {
+    off = 0,
+    on = 1
+};
+
+enum class entrenchment {
+    not_ready = 0,
+    ready = 1,
+};
+
+enum class weapon_28 {
+    off = 0,
+    on = 1
 };
 
 }

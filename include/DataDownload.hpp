@@ -69,7 +69,10 @@ union data_download_pack_two_type {
         };
         union {
             struct {
-                uint8_t reserve_bits2: 5;
+                uint8_t reserve_bits2: 2;
+                uint8_t weapon_28: 1;
+                uint8_t entrenchment: 1;
+                uint8_t weapon_330: 1;
                 uint8_t fix_two_chamber_valve: 1;
                 uint8_t tailgate_control: 2;
             };
@@ -108,7 +111,7 @@ public:
     void init();
     void prepareSend(shawn::handle p_handle);
 
-    bool durex(bool need_durex);
+    bool durex(bool move, bool parked_or_halted);
 };
 
 }

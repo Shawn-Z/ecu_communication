@@ -110,7 +110,18 @@ union data_upload_pack_seven_type {
         uint32_t right_pulse;
         uint8_t vehicle_height;
         uint8_t park_status;
-        uint8_t reserve_bytes1[2];
+        union {
+            struct {
+                uint8_t operation_mode: 1;
+                uint8_t two_chamber_valve: 1;
+                uint8_t weapon_330: 1;
+                uint8_t entrenchment: 1;
+                uint8_t weapon_28: 1;
+                uint8_t reserve_bits: 3;
+            };
+            uint8_t functions1;
+        };
+        uint8_t reserve_byte1;
     };
     uint8_t pack[14];
 };
