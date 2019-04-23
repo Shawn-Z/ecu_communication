@@ -441,7 +441,7 @@ void CommunicationProcess::timeCheck() {
     this->three_one_control_ = (this->data_upload_.pack_seven.operation_mode == (uint8_t)three_one_feedback::operation_mode::three_one);
     this->data_upload_mutex_.unlock();
     if (this->three_one_control_) {
-        ROS_WARN_STREAM_THROTTLE(CHECK_PERIOD, "controlled by 31");
+        ROS_WARN_STREAM("controlled by 31");
     }
     if (!udp_recv_check) {
         this->three_one_control_ = true;
