@@ -24,6 +24,24 @@ namespace ecu_communication {
 
 class AutonomousControl {
 public:
+    struct {
+        struct {
+            int current;
+            int spare;
+        } total;
+        struct {
+            uint8_t current;
+            uint8_t spare;
+        } speed;
+        struct {
+            uint8_t current;
+            uint8_t spare;
+        } steer;
+    } msg_priority;
+
+    ros::Timer priority_check_timer_;
+    void priorityCheck();
+
     //// time check
     shawn::STime msg_update_times;
     shawn::handle speed_sub_handle_;

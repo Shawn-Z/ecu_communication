@@ -212,6 +212,7 @@ bool DataUpload::dataCheck() {
 
 void DataUpload::dataToMsg() {
     this->report.counter = this->recv_counter;
+    this->report.operation_mode = this->pack_seven.operation_mode;
 
     this->report.motion.park = this->pack_seven.park_status;
     this->report.motion.current_gear = this->pack_one.gear;
@@ -276,6 +277,10 @@ void DataUpload::dataToMsg() {
     this->report.vehicle_state.SOC = this->pack_two.SOC;
     this->report.vehicle_state.vehicle_roll = this->pack_five.vehicle_roll;
     this->report.vehicle_state.vehicle_pitch = this->pack_five.vehicle_pitch;
+    this->report.vehicle_state.two_chamber_valve = this->pack_seven.two_chamber_valve;
+    this->report.vehicle_state.entrenchment = this->pack_seven.entrenchment;
+    this->report.vehicle_state.weapon_330 = this->pack_seven.weapon_330;
+    this->report.vehicle_state.weapon_28 = this->pack_seven.weapon_28;
 
     this->report.cylinder_position.left_one = this->pack_three.left_one_cylinder_position * 2;
     this->report.cylinder_position.left_two = this->pack_three.left_two_cylinder_position * 2;

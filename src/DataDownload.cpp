@@ -103,7 +103,7 @@ void DataDownload::dataDistribution() {
 }
 
 bool DataDownload::durex(bool move, bool parked_or_halted) {
-    static std::vector<bool> history_move(50, true);
+    static std::vector<bool> history_move(100, true);
     history_move.erase(history_move.begin());
     history_move.emplace_back(move);
     bool not_fully_stop = move;

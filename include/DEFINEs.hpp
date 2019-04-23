@@ -5,6 +5,7 @@
 #define CHECK_PERIOD 0.25
 #define UDP_SEND_PERIOD 0.013
 #define REMOTE_SEND_PERIOD 0.02
+#define MSG_PRIORITY_CHECK_PERIOD 0.04
 
 #define LOG_INFO LOG(INFO)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "
 #define LOG_WARN LOG(WARNING)<<std::setiosflags(std::ios::fixed)<<ros::Time::now().toSec()<<" "

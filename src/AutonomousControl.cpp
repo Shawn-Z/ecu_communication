@@ -1,3 +1,4 @@
+#include <AutonomousControl.hpp>
 #include "AutonomousControl.hpp"
 
 namespace ecu_communication {
@@ -14,6 +15,13 @@ void AutonomousControl::init(ros::NodeHandle node_handle,
     this->p_control_mode_ = p_control_mode;
     this->p_control_mode_mutex_ = p_control_mode_mutex;
     this->setHandles();
+    this->msg_priority.total.current = -1;
+    this->msg_priority.total.spare = -1;
+    this->msg_priority.speed.current = 0;
+    this->msg_priority.speed.spare = 0;
+    this->msg_priority.steer.current = 0;
+    this->msg_priority.steer.spare = 0;
+    this->priority_check_timer_ = this->nh_.createTimer(ros::Duration(MSG_PRIORITY_CHECK_PERIOD), boost::bind(&AutonomousControl::priorityCheck, this));
 }
 
 void AutonomousControl::setHandles() {
@@ -87,6 +95,15 @@ void AutonomousControl::speedCb(three_one_msgs::ControlSpeed msg) {
     if (!this->receive_switch_) {
         return;
     }
+    if (msg.priority >= this->msg_priority.speed.current) {
+        if (msg.priority > this->msg_priority.speed.current) {
+            this->msg_priority.speed.spare = this->msg_priority.speed.current;
+            this->msg_priority.speed.current = msg.priority;
+        }
+    } else {
+        this->msg_priority.speed.spare = std::max(msg.priority, this->msg_priority.speed.spare);
+        return;
+    }
     this->p_data_download_mutex_->lock();
     this->p_data_download_->pack_one.expect_vehicle_speed = (uint8_t)round(msg.speed * 10.0);
     this->p_data_download_->pack_one.vehicle_gear = msg.gear;
@@ -103,6 +120,15 @@ void AutonomousControl::steerCb(three_one_msgs::ControlSteer msg) {
     if (!this->receive_switch_) {
         return;
     }
+    if (msg.priority >= this->msg_priority.steer.current) {
+        if (msg.priority > this->msg_priority.steer.current) {
+            this->msg_priority.steer.spare = this->msg_priority.steer.current;
+            this->msg_priority.steer.current = msg.priority;
+        }
+    } else {
+        this->msg_priority.steer.spare = std::max(msg.priority, this->msg_priority.steer.spare);
+        return;
+    }
     this->p_data_download_mutex_->lock();
     if (this->p_data_download_->pack_one.vehicle_gear == (uint8_t)(three_one_control::vehicle_gear::R)) {
         this->p_data_download_->pack_one.vehicle_turn_to = (msg.curvature < 0)?
@@ -114,6 +140,36 @@ void AutonomousControl::steerCb(three_one_msgs::ControlSteer msg) {
     this->p_data_download_->pack_one.thousand_times_curvature = (uint16_t)round(fabs(msg.curvature) * 1000.0);
     this->p_data_download_mutex_->unlock();
     this->msg_update_times.pushTimestamp(this->steer_sub_handle_);
+}
+
+void AutonomousControl::priorityCheck() {
+    bool speed_check = true;
+    bool steer_check = true;
+    bool master_check = true;
+
+    //// todo not write master control now
+    master_check = false;
+    if (!master_check) {
+        this->msg_priority.total.current = this->msg_priority.total.spare;
+        this->msg_priority.total.spare = -1;
+    }
+    if (this->msg_priority.total.current != -1) {
+        this->msg_priority.speed.spare = this->msg_priority.speed.current;
+        this->msg_priority.speed.current = 255;
+        this->msg_priority.steer.spare = this->msg_priority.steer.current;
+        this->msg_priority.steer.current = 255;
+        return;
+    }
+    speed_check = this->msg_update_times.checkSingleTimestampTillNow(this->speed_sub_handle_, -1, 500);
+    steer_check = this->msg_update_times.checkSingleTimestampTillNow(this->steer_sub_handle_, -1, 500);
+    if (!speed_check) {
+        this->msg_priority.speed.current = this->msg_priority.speed.spare;
+        this->msg_priority.speed.spare = 0;
+    }
+    if (!steer_check) {
+        this->msg_priority.steer.current = this->msg_priority.steer.spare;
+        this->msg_priority.steer.spare = 0;
+    }
 }
 
 }
