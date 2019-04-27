@@ -102,7 +102,7 @@ void DataDownload::dataDistribution() {
     }
 }
 
-bool DataDownload::durex(bool move, bool parked_or_halted) {
+bool DataDownload::durex(bool move, bool parked_or_halted, double limit_speed, int limit_thousand_curv) {
     static std::vector<bool> history_move(100, true);
     history_move.erase(history_move.begin());
     history_move.emplace_back(move);
@@ -132,8 +132,8 @@ bool DataDownload::durex(bool move, bool parked_or_halted) {
     if (this->pack_one.vehicle_gear == (uint8_t)three_one_control::vehicle_gear::N) {
         this->pack_one.expect_vehicle_speed = 0;
     }
-    this->pack_one.expect_vehicle_speed = std::min<uint8_t>(this->pack_one.expect_vehicle_speed, 50);
-    this->pack_one.thousand_times_curvature = std::min<uint16_t>(this->pack_one.thousand_times_curvature, 1250);
+    this->pack_one.expect_vehicle_speed = std::min<uint8_t>(this->pack_one.expect_vehicle_speed, (uint8_t)round(limit_speed * 10.0));
+    this->pack_one.thousand_times_curvature = std::min<uint16_t>(this->pack_one.thousand_times_curvature, (uint16_t)limit_thousand_curv);
 }
 
 }

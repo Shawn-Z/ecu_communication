@@ -54,6 +54,9 @@ struct yaml_params_type {
     bool log_rawdata;
     bool publish_rawdata;
     bool force_autonomous;
+
+    double limit_speed;
+    int limit_thousand_curv;
 };
 
 class CommunicationProcess {

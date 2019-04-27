@@ -20,3 +20,6 @@ send_default_when_no_msg: true
 log_rawdata: true
 publish_rawdata: true
 force_autonomous: false
+
+limit_speed: 12.0
+limit_thousand_curv: 1250

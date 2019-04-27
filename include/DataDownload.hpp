@@ -111,7 +111,7 @@ public:
     void init();
     void prepareSend(shawn::handle p_handle);
 
-    bool durex(bool move, bool parked_or_halted);
+    bool durex(bool move, bool parked_or_halted, double limit_speed, int limit_thousand_curv);
 };
 
 }

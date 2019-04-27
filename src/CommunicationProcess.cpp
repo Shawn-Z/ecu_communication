@@ -121,6 +121,9 @@ void CommunicationProcess::paramsInit() {
     tmp_result &= this->private_nh_.getParam("publish_rawdata", this->yaml_params_.publish_rawdata);
     tmp_result &= this->private_nh_.getParam("force_autonomous", this->yaml_params_.force_autonomous);
 
+    tmp_result &= this->private_nh_.getParam("limit_speed", this->yaml_params_.limit_speed);
+    tmp_result &= this->private_nh_.getParam("limit_thousand_curv", this->yaml_params_.limit_thousand_curv);
+
     if (!tmp_result) {
         ROS_ERROR_STREAM("param not retrieved");
         ros::shutdown();
@@ -295,7 +298,8 @@ void CommunicationProcess::udpSend() {
     }
     this->data_download_mutex_.lock();
     this->data_upload_mutex_.lock();
-    this->data_download_.durex((this->data_upload_.pack_two.left_motor_actual_speed > 10) || (this->data_upload_.pack_two.right_motor_actual_speed > 10), (this->data_upload_.pack_seven.park_status == (uint8_t)three_one_feedback::park_status::parked));
+    this->data_download_.durex((this->data_upload_.pack_two.left_motor_actual_speed > 10) || (this->data_upload_.pack_two.right_motor_actual_speed > 10), (this->data_upload_.pack_seven.park_status == (uint8_t)three_one_feedback::park_status::parked),
+            this->yaml_params_.limit_speed, this->yaml_params_.limit_thousand_curv);
     this->data_upload_mutex_.unlock();
     this->data_download_.prepareSend(this->udp_pack_handle_);
     this->data_download_mutex_.unlock();
