@@ -7,7 +7,8 @@ RemoteControl::RemoteControl() {
 
 void RemoteControl::init(DataDownload *p_data_download, DataUpload *p_data_upload,
                          std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex,
-                         shawn::SLog *p_log, three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex) {
+                         shawn::SLog *p_log, three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex,
+                         sensor_driver_msgs::VehicleState *p_gps) {
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
     this->p_data_download_mutex_ = p_data_download_mutex;
@@ -15,6 +16,7 @@ void RemoteControl::init(DataDownload *p_data_download, DataUpload *p_data_uploa
     this->p_log_ = p_log;
     this->p_control_mode_ = p_control_mode;
     this->p_control_mode_mutex_ = p_control_mode_mutex;
+    this->p_gps_ = p_gps;
     this->setHandles();
     while (!this->udp_.init()) {
         ROS_INFO_STREAM_THROTTLE(1.2, "udp with remote init error, keep trying");
@@ -79,7 +81,7 @@ void RemoteControl::dataSend() {
     this->remoteSend_.pack_handle.setID(ID_set[counter]);
     this->p_data_upload_mutex_->lock();
     this->p_control_mode_mutex_->lock();
-    size_t send_len = this->remoteSend_.prepareSend(this->p_data_upload_, this->p_control_mode_);
+    size_t send_len = this->remoteSend_.prepareSend(this->p_data_upload_, this->p_control_mode_, *this->p_gps_);
     this->p_data_upload_mutex_->unlock();
     this->p_control_mode_mutex_->unlock();
     if (!this->udp_.sendToRemote(this->remoteSend_.data_to_send, send_len)) {

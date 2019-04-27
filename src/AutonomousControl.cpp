@@ -6,7 +6,8 @@ namespace ecu_communication {
 void AutonomousControl::init(ros::NodeHandle node_handle,
                              DataDownload *p_data_download, DataUpload *p_data_upload,
                              std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex,
-                             three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex) {
+                             three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex,
+                             sensor_driver_msgs::VehicleState *p_gps) {
     this->nh_ = node_handle;
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
@@ -14,6 +15,7 @@ void AutonomousControl::init(ros::NodeHandle node_handle,
     this->p_data_download_mutex_ = p_data_download_mutex;
     this->p_control_mode_ = p_control_mode;
     this->p_control_mode_mutex_ = p_control_mode_mutex;
+    this->p_gps_ = p_gps;
     this->setHandles();
     this->msg_priority.total.current = -1;
     this->msg_priority.total.spare = -1;
@@ -27,11 +29,13 @@ void AutonomousControl::init(ros::NodeHandle node_handle,
 void AutonomousControl::setHandles() {
     this->speed_sub_handle_ = this->msg_update_times.time_handle.newHandle("check the period of speed");
     this->steer_sub_handle_ = this->msg_update_times.time_handle.newHandle("check the period of steer");
+    this->gps_sub_handle_ = this->msg_update_times.time_handle.newHandle("check the period of gps");
 }
 
 void AutonomousControl::receive_init() {
     this->speed_sub_ = this->nh_.subscribe<three_one_msgs::ControlSpeed>("/speed_plan", 1, &AutonomousControl::speedCb, this);
     this->steer_sub_ = this->nh_.subscribe<three_one_msgs::ControlSteer>("/steer_cmd", 1, &AutonomousControl::steerCb, this);
+    this->gps_sub_ = this->nh_.subscribe<sensor_driver_msgs::VehicleState>("/vehicle_state", 1, &AutonomousControl::gpsCb, this);
 }
 
 void AutonomousControl::dataProcess() {
@@ -170,6 +174,11 @@ void AutonomousControl::priorityCheck() {
         this->msg_priority.steer.current = this->msg_priority.steer.spare;
         this->msg_priority.steer.spare = 0;
     }
+}
+
+void AutonomousControl::gpsCb(sensor_driver_msgs::VehicleState msg) {
+    *this->p_gps_ = msg;
+    this->msg_update_times.pushTimestamp(this->gps_sub_handle_);
 }
 
 }

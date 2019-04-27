@@ -1,14 +1,16 @@
 #include "RemoteSend.hpp"
 
 namespace ecu_communication {
-size_t RemoteSend::prepareSend(DataUpload *p_data_upload, three_one_feedback::control_mode *p_control_mode) {
+size_t RemoteSend::prepareSend(DataUpload *p_data_upload, three_one_feedback::control_mode *p_control_mode, sensor_driver_msgs::VehicleState gps) {
     size_t send_len = 0;
     switch (this->pack_handle.getID()) {
         case 0: {
             this->pack_fuck.ID_one = 0xF1;
             this->pack_fuck.ID_two = 0xBC;
-            this->pack_fuck.gps_week;
-            this->pack_fuck.gps_ms;
+            this->pack_fuck.car_type = 1;
+            this->pack_fuck.car_ID = 0; //// todo
+            this->pack_fuck.gps_week = gps.gps_week;
+            this->pack_fuck.gps_ms = gps.gps_ms;
             this->pack_fuck.SOC = p_data_upload->pack_two.SOC;
             if ((*p_control_mode) == three_one_feedback::control_mode::remote) {
                 this->pack_fuck.controlled_state = 1;
@@ -33,15 +35,15 @@ size_t RemoteSend::prepareSend(DataUpload *p_data_upload, three_one_feedback::co
             this->pack_one.left_wheel_expect_speed = p_data_upload->pack_one.left_wheel_expect_speed;
             this->pack_one.right_wheel_expect_speed = p_data_upload->pack_one.right_wheel_expect_speed;
             this->pack_one.vehicle_height = p_data_upload->pack_seven.vehicle_height;
-            this->pack_one.latitude;
-            this->pack_one.longitude;
-            this->pack_one.altitude;
-            this->pack_one.yaw;
-            this->pack_one.roll;
-            this->pack_one.pitch;
-            this->pack_one.north_speed;
-            this->pack_one.east_speed;
-            this->pack_one.up_speed;
+            this->pack_one.latitude = gps.gps.latitude;
+            this->pack_one.longitude = gps.gps.longitude;
+            this->pack_one.altitude = gps.gps.altitude;
+            this->pack_one.yaw = gps.yaw;
+            this->pack_one.roll = gps.roll;
+            this->pack_one.pitch = gps.pitch;
+            this->pack_one.north_speed = gps.linear_velocity.y;
+            this->pack_one.east_speed = gps.linear_velocity.x;
+            this->pack_one.up_speed = gps.linear_velocity.z;
             this->pack_one.SOC = p_data_upload->pack_two.SOC;
             this->pack_one.reserve_byte1 = 0;
             send_len = sizeof(this->pack_one.pack);

@@ -7,6 +7,7 @@
 #include <cmath>
 #include "ThreeOne.hpp"
 #include "DataUpload.hpp"
+#include "sensor_driver_msgs/VehicleState.h"
 
 namespace ecu_communication {
 
@@ -167,7 +168,7 @@ public:
     shawn::handle pack_handle;
     uint8_t data_to_send[2048];
 
-    size_t prepareSend(DataUpload *p_data_upload, three_one_feedback::control_mode *p_control_mode);
+    size_t prepareSend(DataUpload *p_data_upload, three_one_feedback::control_mode *p_control_mode, sensor_driver_msgs::VehicleState gps);
 
     void checkSum();
 };

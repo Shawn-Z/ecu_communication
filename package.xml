@@ -53,6 +53,7 @@
   <depend>roscpp</depend>
   <depend>three_one_msgs</depend>
   <depend>speed_ctrl_msgs</depend>
+  <depend>sensor_driver_msgs</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

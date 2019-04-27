@@ -16,6 +16,8 @@
 #include "RemoteReceive.hpp"
 #include "RemoteSend.hpp"
 
+#include "sensor_driver_msgs/VehicleState.h"
+
 namespace ecu_communication {
 
 class RemoteControl {
@@ -38,6 +40,7 @@ public:
     DataDownload *p_data_download_;
     std::mutex *p_data_upload_mutex_;
     std::mutex *p_data_download_mutex_;
+    sensor_driver_msgs::VehicleState *p_gps_;
 
     shawn::STime udp_recv_times_;
     shawn::handle udp_recv_handle_;
@@ -51,7 +54,8 @@ public:
     RemoteControl();
     void init(DataDownload *p_data_download, DataUpload *p_data_upload,
               std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex,
-              shawn::SLog *p_log, three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex);
+              shawn::SLog *p_log, three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex,
+              sensor_driver_msgs::VehicleState *p_gps);
     void setHandles();
     void dataReceive();
     void dataSend();

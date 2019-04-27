@@ -7,6 +7,7 @@ add_compile_options(-std=c++11)
 set(catkin_deps
     roscpp
     three_one_msgs
+    sensor_driver_msgs
 )
 
 find_package(catkin REQUIRED
