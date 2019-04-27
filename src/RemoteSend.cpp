@@ -133,8 +133,12 @@ size_t RemoteSend::prepareSend(DataUpload *p_data_upload, three_one_feedback::co
             this->pack_eight.right_pulse = p_data_upload->pack_seven.right_pulse;
             this->pack_eight.vehicle_height = p_data_upload->pack_seven.vehicle_height;
             this->pack_eight.park_status = p_data_upload->pack_seven.park_status;
-            this->pack_eight.reserve_bytes1[0] = 0;
-            this->pack_eight.reserve_bytes1[1] = 0;
+            this->pack_eight.operation_mode = p_data_upload->pack_seven.operation_mode;
+            this->pack_eight.two_chamber_valve = p_data_upload->pack_seven.two_chamber_valve;
+            this->pack_eight.weapon_330 = p_data_upload->pack_seven.weapon_330;
+            this->pack_eight.weapon_28 = p_data_upload->pack_seven.weapon_28;
+            this->pack_eight.entrenchment = p_data_upload->pack_seven.entrenchment;
+            this->pack_eight.reserve_bytes1 = 0;
             send_len = sizeof(this->pack_eight.pack);
             memcpy(this->data_to_send, this->pack_eight.pack, send_len);
             break;

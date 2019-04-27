@@ -56,6 +56,9 @@ void RemoteReceive::dataDistribution(char *p_recv_raw_data, DataDownload *p_data
             p_data_download->pack_two.tailgate_control = this->pack_two.tailgate_control;
             p_data_download->pack_two.fix_two_chamber_valve = this->pack_two.fix_two_chamber_valve;
             p_data_download->pack_two.brake = this->pack_two.brake;
+            p_data_download->pack_two.weapon_330 = this->pack_two.weapon_330;
+            p_data_download->pack_two.entrenchment = this->pack_two.entrenchment;
+            p_data_download->pack_two.weapon_28 = this->pack_two.weapon_28;
             break;
         }
         default: {

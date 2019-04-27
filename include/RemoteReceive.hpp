@@ -71,7 +71,9 @@ union remote_receive__pack_two_type {
             struct {
                 uint8_t vehicle_start: 1;
                 uint8_t power_on: 1;
-                uint8_t reserve_bits2: 3;
+                uint8_t weapon_28: 1;
+                uint8_t entrenchment: 1;
+                uint8_t weapon_330: 1;
                 uint8_t fix_two_chamber_valve: 1;
                 uint8_t tailgate_control: 2;
             };

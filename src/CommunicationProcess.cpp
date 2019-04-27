@@ -354,6 +354,9 @@ void CommunicationProcess::timeCheck() {
     this->control_mode_mutex_.unlock();
     switch (tmp_control_mode) {
         case (int)three_one_feedback::control_mode::autonomous: {
+            if (udp_recv_check && msg_update_check) {
+                ROS_INFO_STREAM_THROTTLE(1, "work well: autonomous");
+            }
             this->autonomousControl_.send_switch_ = udp_recv_check;
             this->remoteControl_.send_switch_ = udp_recv_check;
             this->autonomousControl_.receive_switch_ = true;
@@ -361,6 +364,9 @@ void CommunicationProcess::timeCheck() {
             break;
         }
         case (int)three_one_feedback::control_mode::remote: {
+            if (udp_recv_check && remote_update_check) {
+                ROS_INFO_STREAM_THROTTLE(1, "work well: remote");
+            }
             this->autonomousControl_.send_switch_ = udp_recv_check;
             this->remoteControl_.send_switch_ = udp_recv_check;
             this->autonomousControl_.receive_switch_ = false;
@@ -422,22 +428,6 @@ void CommunicationProcess::timeCheck() {
         default: {
             this->udp_send_switch_ = false;
             break;
-        }
-    }
-
-    if (udp_recv_check && msg_update_check && remote_update_check) {
-        switch (tmp_control_mode) {
-            case (int)three_one_feedback::control_mode::autonomous: {
-                ROS_INFO_STREAM_THROTTLE(1, "work well: autonomous");
-                break;
-            }
-            case (int)three_one_feedback::control_mode::remote: {
-                ROS_INFO_STREAM_THROTTLE(1, "work well: remote");
-                break;
-            }
-            default: {
-                break;
-            }
         }
     }
 
