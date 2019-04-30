@@ -7,6 +7,7 @@
 #include "STime.hpp"
 #include "SProportion.hpp"
 #include "SLog.hpp"
+#include "SFile.hpp"
 
 #include "DEFINEs.hpp"
 #include "ThreeOne.hpp"
@@ -61,6 +62,7 @@ public:
     void dataSend();
     void setControlMode();
     bool time_check();
+    void fileDestroy();
 };
 
 }

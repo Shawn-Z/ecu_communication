@@ -136,4 +136,16 @@ bool DataDownload::durex(bool move, bool parked_or_halted, double limit_speed, i
     this->pack_one.thousand_times_curvature = std::min<uint16_t>(this->pack_one.thousand_times_curvature, (uint16_t)limit_thousand_curv);
 }
 
+void DataDownload::devicesControl(three_one_feedback::control_mode control_mode) {
+    if (control_mode == three_one_feedback::control_mode::autonomous) {
+        this->pack_one.wide_taillight = (uint8_t)three_one_control::wide_taillight::on;
+    }
+    if (control_mode == three_one_feedback::control_mode::remote) {
+        this->pack_one.wide_taillight = (uint8_t)three_one_control::wide_taillight::off;
+    }
+    if (control_mode == three_one_feedback::control_mode::ERROR) {
+        this->pack_one.turn_light = (uint8_t)three_one_control::turn_light::all_on;
+    }
+}
+
 }

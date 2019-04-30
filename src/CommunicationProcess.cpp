@@ -301,6 +301,9 @@ void CommunicationProcess::udpSend() {
     this->data_download_.durex((this->data_upload_.pack_two.left_motor_actual_speed > 10) || (this->data_upload_.pack_two.right_motor_actual_speed > 10), (this->data_upload_.pack_seven.park_status == (uint8_t)three_one_feedback::park_status::parked),
             this->yaml_params_.limit_speed, this->yaml_params_.limit_thousand_curv);
     this->data_upload_mutex_.unlock();
+    this->control_mode_mutex_.lock();
+    this->data_download_.devicesControl(this->control_mode_);
+    this->control_mode_mutex_.unlock();
     this->data_download_.prepareSend(this->udp_pack_handle_);
     this->data_download_mutex_.unlock();
 

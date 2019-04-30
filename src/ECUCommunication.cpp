@@ -1,4 +1,5 @@
 #include "CommunicationProcess.hpp"
+#include "SFile.hpp"
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "ecu_communication");

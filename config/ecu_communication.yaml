@@ -22,4 +22,4 @@ publish_rawdata: true
 force_autonomous: false
 
 limit_speed: 15.0
-limit_thousand_curv: 1250
+limit_thousand_curv: 1300

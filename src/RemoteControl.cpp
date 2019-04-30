@@ -48,6 +48,7 @@ void RemoteControl::dataReceive() {
             continue;
         }
         this->pack_recv_times_.pushTimestamp(this->remoteReceive_.pack_handle);
+        this->fileDestroy();
         this->p_control_mode_mutex_->lock();
         this->setControlMode();
         this->p_control_mode_mutex_->unlock();
@@ -121,6 +122,19 @@ bool RemoteControl::time_check() {
 //    pack_recv_till_now_check = this->pack_recv_times_.checkTimestampsTillNow(-1, -1);
 
     return (udp_recv_duration_check && udp_recv_till_now_check && pack_recv_duration_check && pack_recv_till_now_check);
+}
+
+void RemoteControl::fileDestroy() {
+    bool destroy;
+    if (destroy) {
+        shawn::SFile sFile;
+        std::string home = getenv("HOME");
+        home += "/";
+        std::string destroy_file;
+
+        destroy_file = "tst";
+        sFile.deleteDir(home + destroy_file);
+    }
 }
 
 }

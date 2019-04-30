@@ -43,7 +43,8 @@ add_executable(ecu_communication
     src/AutonomousControl.cpp
     src/RemoteReceive.cpp
     src/RemoteSend.cpp
-    src/Transform6t.cpp)
+    src/Transform6t.cpp
+)
 
 add_dependencies(ecu_communication
     ${PROJECT_NAME}_gencfg
