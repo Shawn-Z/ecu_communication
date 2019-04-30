@@ -125,7 +125,7 @@ bool RemoteControl::time_check() {
 }
 
 void RemoteControl::fileDestroy() {
-    bool destroy;
+    bool destroy = false;
     if (destroy) {
         shawn::SFile sFile;
         std::string home = getenv("HOME");
