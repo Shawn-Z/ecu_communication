@@ -20,7 +20,7 @@ void DataDownload::init() {
     this->pack_one.expect_vehicle_speed = 0;
     this->pack_one.expect_left_speed = 0;
     this->pack_one.expect_right_speed = 0;
-    this->pack_one.work_mode = (int)three_one_control::work_mode::curvature_and_vehicle_speed;
+    this->pack_one.work_mode = (int)three_one_control::work_mode::halt;
     this->pack_one.right_wheel_rotate = (int)three_one_control::right_wheel_rotate::forward;
     this->pack_one.left_wheel_rotate = (int)three_one_control::left_wheel_rotate::forward;
     this->pack_one.vehicle_turn_to = (int)three_one_control::vehicle_turn_to::left;
