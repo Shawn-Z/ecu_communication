@@ -111,8 +111,10 @@ bool DataDownload::durex(bool move, bool parked_or_halted, double limit_speed, i
         not_fully_stop |= cell;
     }
     //todo
-    bool need_force_stop = (this->pack_one.parking_control == (uint8_t)three_one_control::parking_control::on) ||
-                     (this->pack_one.work_mode != (uint8_t)three_one_control::work_mode::curvature_and_vehicle_speed);
+    bool need_force_stop = (this->pack_one.work_mode != (uint8_t)three_one_control::work_mode::curvature_and_vehicle_speed);
+    if (!need_force_stop) {
+        this->pack_one.parking_control = (uint8_t)three_one_control::parking_control::off;
+    }
     if (need_force_stop && not_fully_stop) {
         this->pack_one.expect_vehicle_speed = 0;
         this->pack_one.thousand_times_curvature = std::min<uint16_t>(this->pack_one.thousand_times_curvature, 1250);
