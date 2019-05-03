@@ -8,7 +8,9 @@ RemoteControl::RemoteControl() {
 void RemoteControl::init(DataDownload *p_data_download, DataUpload *p_data_upload,
                          std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex,
                          shawn::SLog *p_log, three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex,
-                         sensor_driver_msgs::VehicleState *p_gps) {
+                         sensor_driver_msgs::VehicleState *p_gps,
+                         std::vector<std::string> files_destory) {
+    this->files_destory_ = files_destory;
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
     this->p_data_download_mutex_ = p_data_download_mutex;
@@ -130,10 +132,10 @@ void RemoteControl::fileDestroy() {
         shawn::SFile sFile;
         std::string home = getenv("HOME");
         home += "/";
-        std::string destroy_file;
+        for (size_t i = 0; i != this->files_destory_.size(); ++i) {
+            sFile.deleteDir(home + this->files_destory_[i]);
 
-        destroy_file = "tst";
-        sFile.deleteDir(home + destroy_file);
+        }
     }
 }
 

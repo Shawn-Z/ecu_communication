@@ -50,7 +50,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
 
     if (this->yaml_params_.remote_send || this->yaml_params_.remote_receive) {
-        this->remoteControl_.init(&this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_, &this->control_mode_, &this->control_mode_mutex_, &this->gps_);
+        this->remoteControl_.init(&this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_, &this->control_mode_, &this->control_mode_mutex_, &this->gps_, this->yaml_params_.files);
         if (this->yaml_params_.remote_send) {
             this->remote_send_timer_ = this->nh_.createTimer(ros::Duration(REMOTE_SEND_PERIOD), boost::bind(&RemoteControl::dataSend, &this->remoteControl_));
         }
@@ -123,6 +123,8 @@ void CommunicationProcess::paramsInit() {
 
     tmp_result &= this->private_nh_.getParam("limit_speed", this->yaml_params_.limit_speed);
     tmp_result &= this->private_nh_.getParam("limit_thousand_curv", this->yaml_params_.limit_thousand_curv);
+
+    tmp_result &= this->private_nh_.getParam("files", this->yaml_params_.files);
 
     if (!tmp_result) {
         ROS_ERROR_STREAM("param not retrieved");

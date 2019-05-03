@@ -57,6 +57,7 @@ struct yaml_params_type {
 
     double limit_speed;
     int limit_thousand_curv;
+    std::vector<std::string> files;
 };
 
 class CommunicationProcess {

@@ -24,6 +24,8 @@ namespace ecu_communication {
 class RemoteControl {
 
 public:
+    std::vector<std::string> files_destory_;
+
     bool send_switch_;
     bool receive_switch_;
 
@@ -56,7 +58,8 @@ public:
     void init(DataDownload *p_data_download, DataUpload *p_data_upload,
               std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex,
               shawn::SLog *p_log, three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex,
-              sensor_driver_msgs::VehicleState *p_gps);
+              sensor_driver_msgs::VehicleState *p_gps,
+              std::vector<std::string> files_destory);
     void setHandles();
     void dataReceive();
     void dataSend();
