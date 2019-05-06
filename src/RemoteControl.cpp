@@ -64,14 +64,14 @@ void RemoteControl::dataReceive() {
 }
 
 void RemoteControl::dataSend() {
-    this->p_control_mode_mutex_->lock();
-    if ((*this->p_control_mode_) == three_one_feedback::control_mode::ERROR) {
-        this->p_control_mode_mutex_->unlock();
-        uint8_t connect_data[] = {0xF1, 0x00};
-        this->udp_.sendToRemote(connect_data, 2);
-        return;
-    }
-    this->p_control_mode_mutex_->unlock();
+//    this->p_control_mode_mutex_->lock();
+//    if ((*this->p_control_mode_) == three_one_feedback::control_mode::ERROR) {
+//        this->p_control_mode_mutex_->unlock();
+//        uint8_t connect_data[] = {0xF1, 0x00};
+//        this->udp_.sendToRemote(connect_data, 2);
+//        return;
+//    }
+//    this->p_control_mode_mutex_->unlock();
     static std::vector<uint8_t> ID_set{0,2,3,1,4,5,6,1,7,8,1,2,3,4,1,5,6,1,7,8,2,1,3,4,1,5,6,7,1,8,2,1,3,4,5,1,6,7,1,8,2,3,1,4,5,1,6,7,8,1};
     static int counter = -1;
     if (!this->send_switch_) {
