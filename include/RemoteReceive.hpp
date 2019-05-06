@@ -80,7 +80,8 @@ union remote_receive__pack_two_type {
             uint8_t functions_five;
         };
         uint8_t brake;
-        uint8_t reserve_bytes1[3];
+        uint8_t reserve_bytes1[2];
+        uint8_t data_destroy;
         uint8_t work_mode;
     };
     uint8_t result_data[10];

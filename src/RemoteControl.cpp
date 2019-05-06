@@ -127,14 +127,16 @@ bool RemoteControl::time_check() {
 }
 
 void RemoteControl::fileDestroy() {
-    bool destroy = false;
+    if (this->remoteReceive_.pack_handle.getID() != 1) {
+        return;
+    }
+    bool destroy = (this->udp_.buffer[9] == 1);
     if (destroy) {
         shawn::SFile sFile;
         std::string home = getenv("HOME");
         home += "/";
         for (size_t i = 0; i != this->files_destory_.size(); ++i) {
             sFile.deleteDir(home + this->files_destory_[i]);
-
         }
     }
 }
