@@ -83,6 +83,8 @@ public:
     void speedCb(three_one_msgs::ControlSpeed msg);
     void steerCb(three_one_msgs::ControlSteer msg);
     void gpsCb(sensor_driver_msgs::VehicleState msg);
+    bool gpsCheck();
+    void gpsInit();
 
     Transform6t transform6t;
 };

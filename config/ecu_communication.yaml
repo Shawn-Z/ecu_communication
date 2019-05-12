@@ -4,6 +4,7 @@ lower_layer_send: true
 lower_layer_receive: true
 remote_receive: true
 remote_send: true
+weapon_send: true
 
 ecu_local_ip: "172.16.16.167"
 ecu_local_port: 8181
@@ -14,6 +15,11 @@ remote_local_ip: "192.168.1.18"
 remote_local_port: 13100
 remote_remote_ip: "192.168.1.24"
 remote_remote_port: 13010
+
+weapon_local_ip: "192.168.1.18"
+weapon_local_port: 11500
+weapon_remote_ip: "192.168.1.21"
+weapon_remote_port: 11050
 
 reconfig: false
 send_default_when_no_msg: true

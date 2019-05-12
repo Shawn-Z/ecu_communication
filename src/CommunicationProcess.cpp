@@ -60,6 +60,11 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
         }
     }
 
+    if (this->yaml_params_.weapon_send) {
+        this->weapon_communication_.init(&this->data_upload_, &this->data_upload_mutex_, &this->sLog_, &this->gps_);
+        this->weapon_send_timer_ = this->nh_.createTimer(ros::Duration(0.07), boost::bind(&WeaponCommunication::dataSend, &this->weapon_communication_));
+    }
+
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
 
@@ -104,6 +109,7 @@ void CommunicationProcess::paramsInit() {
     tmp_result &= this->private_nh_.getParam("lower_layer_receive", this->yaml_params_.lower_layer_receive);
     tmp_result &= this->private_nh_.getParam("remote_receive", this->yaml_params_.remote_receive);
     tmp_result &= this->private_nh_.getParam("remote_send", this->yaml_params_.remote_send);
+    tmp_result &= this->private_nh_.getParam("weapon_send", this->yaml_params_.weapon_send);
 
     tmp_result &= this->private_nh_.getParam("ecu_local_ip", this->yaml_params_.ecu_local_ip);
     tmp_result &= this->private_nh_.getParam("ecu_local_port", this->yaml_params_.ecu_local_port);
@@ -114,6 +120,11 @@ void CommunicationProcess::paramsInit() {
     tmp_result &= this->private_nh_.getParam("remote_local_port", this->yaml_params_.remote_local_port);
     tmp_result &= this->private_nh_.getParam("remote_remote_ip", this->yaml_params_.remote_remote_ip);
     tmp_result &= this->private_nh_.getParam("remote_remote_port", this->yaml_params_.remote_remote_port);
+
+    tmp_result &= this->private_nh_.getParam("weapon_local_ip", this->yaml_params_.weapon_local_ip);
+    tmp_result &= this->private_nh_.getParam("weapon_local_port", this->yaml_params_.weapon_local_port);
+    tmp_result &= this->private_nh_.getParam("weapon_remote_ip", this->yaml_params_.weapon_remote_ip);
+    tmp_result &= this->private_nh_.getParam("weapon_remote_port", this->yaml_params_.weapon_remote_port);
 
     tmp_result &= this->private_nh_.getParam("reconfig", this->yaml_params_.reconfig);
     tmp_result &= this->private_nh_.getParam("send_default_when_no_msg", this->yaml_params_.send_default_when_no_msg);
@@ -140,6 +151,11 @@ void CommunicationProcess::paramsInit() {
     this->remoteControl_.udp_.params.local_port = this->yaml_params_.remote_local_port;
     this->remoteControl_.udp_.params.remote_ip = this->yaml_params_.remote_remote_ip;
     this->remoteControl_.udp_.params.remote_port = this->yaml_params_.remote_remote_port;
+
+    this->weapon_communication_.udp_.params.local_ip = this->yaml_params_.weapon_local_ip;
+    this->weapon_communication_.udp_.params.local_port = this->yaml_params_.weapon_local_port;
+    this->weapon_communication_.udp_.params.remote_ip = this->yaml_params_.weapon_remote_ip;
+    this->weapon_communication_.udp_.params.remote_port = this->yaml_params_.weapon_remote_port;
 
     this->udp_send_switch_ = false;
 
@@ -344,14 +360,21 @@ void CommunicationProcess::timeCheck() {
     bool udp_recv_check = true;
     bool msg_update_check = true;
     bool remote_update_check = true;
+    bool gps_update_check = true;
     if (this->yaml_params_.lower_layer_receive) {
         udp_recv_check = udpReceiveCheck();
     }
     if (this->yaml_params_.upper_layer_receive) {
         msg_update_check = this->autonomousControl_.rosmsgUpdateCheck();
+        gps_update_check = this->autonomousControl_.gpsCheck();
     }
     if (this->yaml_params_.remote_receive) {
         remote_update_check = this->remoteControl_.time_check();
+    }
+
+    if (!gps_update_check) {
+        this->autonomousControl_.gpsInit();
+        LOG_ERROR << "loss gps msg from zzh";
     }
 
     this->control_mode_mutex_.lock();

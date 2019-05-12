@@ -25,6 +25,7 @@
 #include "DataDownload.hpp"
 #include "AutonomousControl.hpp"
 #include "RemoteControl.hpp"
+#include "WeaponCommunication.hpp"
 #include "SerialPortCommunication.hpp"
 
 #include "Transform6t.hpp"
@@ -38,6 +39,7 @@ struct yaml_params_type {
     bool lower_layer_receive;
     bool remote_receive;
     bool remote_send;
+    bool weapon_send;
 
     std::string ecu_local_ip;
     int ecu_local_port;
@@ -48,6 +50,11 @@ struct yaml_params_type {
     int remote_local_port;
     std::string remote_remote_ip;
     int remote_remote_port;
+
+    std::string weapon_local_ip;
+    int weapon_local_port;
+    std::string weapon_remote_ip;
+    int weapon_remote_port;
 
     bool reconfig;
     bool send_default_when_no_msg;
@@ -80,6 +87,7 @@ private:
     AutonomousControl autonomousControl_;
     RemoteControl remoteControl_;
     std::thread remote_receive_thread_;
+    WeaponCommunication weapon_communication_;
 
     //// time check
     shawn::STime udp_recv_times_;
@@ -103,6 +111,7 @@ private:
     ros::Timer udp_send_timer_;
     ros::Timer ros_publish_timer_;
     ros::Timer remote_send_timer_;
+    ros::Timer weapon_send_timer_;
     ros::Publisher udp_recv_rawdata_publisher_;
     ros::Publisher udp_send_rawdata_publisher_;
 

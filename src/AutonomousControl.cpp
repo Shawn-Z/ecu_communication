@@ -24,6 +24,7 @@ void AutonomousControl::init(ros::NodeHandle node_handle,
     this->msg_priority.steer.current = 0;
     this->msg_priority.steer.spare = 0;
     this->priority_check_timer_ = this->nh_.createTimer(ros::Duration(MSG_PRIORITY_CHECK_PERIOD), boost::bind(&AutonomousControl::priorityCheck, this));
+    this->gpsInit();
 }
 
 void AutonomousControl::setHandles() {
@@ -179,6 +180,22 @@ void AutonomousControl::priorityCheck() {
 void AutonomousControl::gpsCb(sensor_driver_msgs::VehicleState msg) {
     *this->p_gps_ = msg;
     this->msg_update_times.pushTimestamp(this->gps_sub_handle_);
+}
+
+bool AutonomousControl::gpsCheck() {
+    return this->msg_update_times.checkSingleTimestampTillNow(this->gps_sub_handle_, -1, 500);
+}
+
+void AutonomousControl::gpsInit() {
+    this->p_gps_->linear_velocity.x = 0.0;
+    this->p_gps_->linear_velocity.y = 0.0;
+    this->p_gps_->linear_velocity.z = 0.0;
+    this->p_gps_->gps.latitude = 0.0;
+    this->p_gps_->gps.longitude = 0.0;
+    this->p_gps_->gps.altitude = 0.0;
+    this->p_gps_->yaw = 0.0;
+    this->p_gps_->roll = 0.0;
+    this->p_gps_->pitch = 0.0;
 }
 
 }

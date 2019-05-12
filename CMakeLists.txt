@@ -44,6 +44,8 @@ add_executable(ecu_communication
     src/RemoteReceive.cpp
     src/RemoteSend.cpp
     src/Transform6t.cpp
+    src/WeaponCommunication.cpp
+    src/WeaponSend.cpp
 )
 
 add_dependencies(ecu_communication
