@@ -129,7 +129,7 @@ bool DataDownload::durex(bool move, bool parked_or_halted, double limit_speed, i
     }
     if (parked_or_halted) {
         this->pack_one.expect_vehicle_speed = std::min<uint8_t>(this->pack_one.expect_vehicle_speed, 1);
-        this->pack_one.thousand_times_curvature = std::min<uint8_t>(this->pack_one.thousand_times_curvature, 100);
+//        this->pack_one.thousand_times_curvature = std::min<uint8_t>(this->pack_one.thousand_times_curvature, 100);
     }
     if (this->pack_one.vehicle_gear == (uint8_t)three_one_control::vehicle_gear::N) {
         this->pack_one.expect_vehicle_speed = 0;
