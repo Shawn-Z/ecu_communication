@@ -112,6 +112,7 @@ private:
     ros::Timer ros_publish_timer_;
     ros::Timer remote_send_timer_;
     ros::Timer weapon_send_timer_;
+    ros::Timer weapon_control_timer_;
     ros::Publisher udp_recv_rawdata_publisher_;
     ros::Publisher udp_send_rawdata_publisher_;
 

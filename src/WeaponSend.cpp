@@ -36,4 +36,12 @@ size_t WeaponSend::prepareSend(DataUpload *p_data_upload, sensor_driver_msgs::Ve
     }
     return send_len;
 }
+
+WeaponSend::WeaponSend() {
+    this->pack_control.ID_one = 0xE1;
+    this->pack_control.ID_two = 0xF1;
+    this->pack_control.ID_three = 0xE7;
+    this->pack_control.ID_four = 0xF7;
+}
+
 }

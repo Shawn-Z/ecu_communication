@@ -36,7 +36,7 @@ void AutonomousControl::setHandles() {
 void AutonomousControl::receive_init() {
     this->speed_sub_ = this->nh_.subscribe<three_one_msgs::ControlSpeed>("/speed_plan", 1, &AutonomousControl::speedCb, this);
     this->steer_sub_ = this->nh_.subscribe<three_one_msgs::ControlSteer>("/steer_cmd", 1, &AutonomousControl::steerCb, this);
-    this->gps_sub_ = this->nh_.subscribe<sensor_driver_msgs::VehicleState>("/vehicle_state", 1, &AutonomousControl::gpsCb, this);
+    this->gps_sub_ = this->nh_.subscribe<sensor_driver_msgs::VehicleState>("/vehiclestate", 1, &AutonomousControl::gpsCb, this);
 }
 
 void AutonomousControl::dataProcess() {

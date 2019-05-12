@@ -63,6 +63,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     if (this->yaml_params_.weapon_send) {
         this->weapon_communication_.init(&this->data_upload_, &this->data_upload_mutex_, &this->sLog_, &this->gps_);
         this->weapon_send_timer_ = this->nh_.createTimer(ros::Duration(0.07), boost::bind(&WeaponCommunication::dataSend, &this->weapon_communication_));
+        this->weapon_control_timer_ = this->nh_.createTimer(ros::Duration(0.2), boost::bind(&WeaponCommunication::cmdSend, &this->weapon_communication_));
     }
 
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),

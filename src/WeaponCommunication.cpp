@@ -27,4 +27,15 @@ void WeaponCommunication::dataSend() {
     }
 }
 
+void WeaponCommunication::cmdSend() {
+    if (!this->send_switch_) {
+        return;
+    }
+    this->weapon_send_.pack_control.cmd = 0;
+    if (!this->udp_.sendToRemote(this->weapon_send_.pack_control.pack, 5)) {
+        LOG_ERROR << "weapon send length error: " << this->udp_.get_send_len() << ". raw data as following:";
+        this->p_log_->logUint8Array((char *)this->weapon_send_.data_to_send, 5, google::ERROR);
+    }
+}
+
 }

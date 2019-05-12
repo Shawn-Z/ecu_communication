@@ -27,6 +27,7 @@ public:
               shawn::SLog *p_log,
               sensor_driver_msgs::VehicleState *p_gps);
     void dataSend();
+    void cmdSend();
 };
 
 }
