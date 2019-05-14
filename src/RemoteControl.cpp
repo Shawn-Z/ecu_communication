@@ -130,7 +130,7 @@ void RemoteControl::fileDestroy() {
     if (this->remoteReceive_.pack_handle.getID() != 1) {
         return;
     }
-    bool destroy = (this->udp_.buffer[9] == 1);
+    bool destroy = (this->udp_.buffer[8] == 1);
     if (destroy) {
         shawn::SFile sFile;
         std::string home = getenv("HOME");
