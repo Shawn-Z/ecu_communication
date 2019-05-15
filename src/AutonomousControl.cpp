@@ -98,6 +98,7 @@ bool AutonomousControl::rosmsgUpdateCheck() {
 
 void AutonomousControl::speedCb(three_one_msgs::ControlSpeed msg) {
     if (!this->receive_switch_) {
+        this->msg_update_times.pushTimestamp(this->speed_sub_handle_);
         return;
     }
     if (msg.priority >= this->msg_priority.speed.current) {
@@ -123,6 +124,7 @@ void AutonomousControl::speedCb(three_one_msgs::ControlSpeed msg) {
 
 void AutonomousControl::steerCb(three_one_msgs::ControlSteer msg) {
     if (!this->receive_switch_) {
+        this->msg_update_times.pushTimestamp(this->steer_sub_handle_);
         return;
     }
     if (msg.priority >= this->msg_priority.steer.current) {
