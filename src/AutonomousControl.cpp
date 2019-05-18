@@ -37,6 +37,7 @@ void AutonomousControl::receive_init() {
     this->speed_sub_ = this->nh_.subscribe<three_one_msgs::ControlSpeed>("/speed_plan", 1, &AutonomousControl::speedCb, this);
     this->steer_sub_ = this->nh_.subscribe<three_one_msgs::ControlSteer>("/steer_cmd", 1, &AutonomousControl::steerCb, this);
     this->gps_sub_ = this->nh_.subscribe<sensor_driver_msgs::VehicleState>("/vehiclestate", 1, &AutonomousControl::gpsCb, this);
+    this->suspension_sub_ = this->nh_.subscribe<three_one_msgs::ControlSuspension>("/suspension", 1, &AutonomousControl::suspensionCb, this);
 }
 
 void AutonomousControl::dataProcess() {
@@ -198,6 +199,19 @@ void AutonomousControl::gpsInit() {
     this->p_gps_->yaw = 0.0;
     this->p_gps_->roll = 0.0;
     this->p_gps_->pitch = 0.0;
+}
+
+void AutonomousControl::suspensionCb(three_one_msgs::ControlSuspension msg) {
+    this->p_data_download_mutex_->lock();
+    this->p_data_download_->pack_two.cylinder_select = msg.cylinder_select;
+    this->p_data_download_->pack_two.suspension_select = msg.suspension_select;
+    this->p_data_download_->pack_two.suspension_work_mode = msg.suspension_work_mode;
+    this->p_data_download_->pack_two.suspension_work_mode_detail = msg.suspension_work_mode_detail;
+    this->p_data_download_->pack_two.suspension_cylinder_select_mode = msg.suspension_cylinder_select_mode;
+    this->p_data_download_->pack_two.suspension_cylinder_motor_control = msg.suspension_cylinder_motor_control;
+    this->p_data_download_->pack_two.vertical_wall_mode = msg.vertical_wall_mode;
+    this->p_data_download_->pack_two.fix_two_chamber_valve = msg.fix_two_chamber_valve;
+    this->p_data_download_mutex_->unlock();
 }
 
 }

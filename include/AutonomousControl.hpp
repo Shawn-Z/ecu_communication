@@ -54,6 +54,7 @@ public:
     ros::Subscriber speed_sub_;
     ros::Subscriber steer_sub_;
     ros::Subscriber gps_sub_;
+    ros::Subscriber suspension_sub_;
 
     //// markers
     bool send_switch_;
@@ -83,6 +84,7 @@ public:
     void speedCb(three_one_msgs::ControlSpeed msg);
     void steerCb(three_one_msgs::ControlSteer msg);
     void gpsCb(sensor_driver_msgs::VehicleState msg);
+    void suspensionCb(three_one_msgs::ControlSuspension msg);
     bool gpsCheck();
     void gpsInit();
 
