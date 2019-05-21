@@ -211,6 +211,7 @@ void AutonomousControl::suspensionCb(three_one_msgs::ControlSuspension msg) {
     this->p_data_download_->pack_two.suspension_cylinder_motor_control = msg.suspension_cylinder_motor_control;
     this->p_data_download_->pack_two.vertical_wall_mode = msg.vertical_wall_mode;
     this->p_data_download_->pack_two.fix_two_chamber_valve = msg.fix_two_chamber_valve;
+    this->p_data_download_->pack_two.entrenchment = msg.entrenchment;
     this->p_data_download_mutex_->unlock();
 }
 
