@@ -138,14 +138,15 @@ void AutonomousControl::steerCb(three_one_msgs::ControlSteer msg) {
         return;
     }
     this->p_data_download_mutex_->lock();
-    if (this->p_data_download_->pack_one.vehicle_gear == (uint8_t)(three_one_control::vehicle_gear::R)) {
+    uint16_t thousand_curv = (uint16_t)round(fabs(msg.curvature) * 1000.0);
+    if ((this->p_data_download_->pack_one.vehicle_gear == (uint8_t)(three_one_control::vehicle_gear::R)) && (thousand_curv < 1251)) {
         this->p_data_download_->pack_one.vehicle_turn_to = (msg.curvature < 0)?
                                                            ((uint8_t)three_one_control::vehicle_turn_to::left): ((uint8_t)three_one_control::vehicle_turn_to::right);
     } else {
         this->p_data_download_->pack_one.vehicle_turn_to = (msg.curvature > 0)?
                                                            ((uint8_t)three_one_control::vehicle_turn_to::left): ((uint8_t)three_one_control::vehicle_turn_to::right);
     }
-    this->p_data_download_->pack_one.thousand_times_curvature = (uint16_t)round(fabs(msg.curvature) * 1000.0);
+    this->p_data_download_->pack_one.thousand_times_curvature = thousand_curv;
     this->p_data_download_mutex_->unlock();
     this->msg_update_times.pushTimestamp(this->steer_sub_handle_);
 }
