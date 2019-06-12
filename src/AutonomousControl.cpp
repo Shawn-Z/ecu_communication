@@ -7,7 +7,8 @@ void AutonomousControl::init(ros::NodeHandle node_handle,
                              DataDownload *p_data_download, DataUpload *p_data_upload,
                              std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex,
                              three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex,
-                             sensor_driver_msgs::VehicleState *p_gps) {
+                             sensor_driver_msgs::VehicleState *p_gps,
+                             weapon::cmd *p_weapon_cmd) {
     this->nh_ = node_handle;
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
@@ -16,6 +17,7 @@ void AutonomousControl::init(ros::NodeHandle node_handle,
     this->p_control_mode_ = p_control_mode;
     this->p_control_mode_mutex_ = p_control_mode_mutex;
     this->p_gps_ = p_gps;
+    this->p_weapon_cmd_ = p_weapon_cmd;
     this->setHandles();
     this->msg_priority.total.current = -1;
     this->msg_priority.total.spare = -1;
@@ -31,6 +33,8 @@ void AutonomousControl::setHandles() {
     this->speed_sub_handle_ = this->msg_update_times.time_handle.newHandle("check the period of speed");
     this->steer_sub_handle_ = this->msg_update_times.time_handle.newHandle("check the period of steer");
     this->gps_sub_handle_ = this->msg_update_times.time_handle.newHandle("check the period of gps");
+    this->suspension_sub_handle_ = this->msg_update_times.time_handle.newHandle("check the period of suspension");
+    this->weapon_sub_handle_ = this->msg_update_times.time_handle.newHandle("check the period of weapon");
 }
 
 void AutonomousControl::receive_init() {
@@ -38,6 +42,7 @@ void AutonomousControl::receive_init() {
     this->steer_sub_ = this->nh_.subscribe<three_one_msgs::ControlSteer>("/steer_cmd", 1, &AutonomousControl::steerCb, this);
     this->gps_sub_ = this->nh_.subscribe<sensor_driver_msgs::VehicleState>("/vehiclestate", 1, &AutonomousControl::gpsCb, this);
     this->suspension_sub_ = this->nh_.subscribe<three_one_msgs::ControlSuspension>("/suspension", 1, &AutonomousControl::suspensionCb, this);
+    this->weapon_sub_ = this->nh_.subscribe<three_one_msgs::ControlWeapon>("/weapon", 1, &AutonomousControl::weaponCb, this);
 }
 
 void AutonomousControl::dataProcess() {
@@ -213,6 +218,44 @@ void AutonomousControl::suspensionCb(three_one_msgs::ControlSuspension msg) {
     this->p_data_download_->pack_two.vertical_wall_mode = msg.vertical_wall_mode;
     this->p_data_download_->pack_two.fix_two_chamber_valve = msg.fix_two_chamber_valve;
     this->p_data_download_->pack_two.entrenchment = msg.entrenchment;
+    this->p_data_download_mutex_->unlock();
+}
+
+void AutonomousControl::weaponCb(three_one_msgs::ControlWeapon msg) {
+    this->p_data_download_mutex_->lock();
+    this->p_data_download_->pack_two.weapon_330 = msg.weapon_330;
+    this->p_data_download_->pack_two.weapon_28 = msg.weapon_28;
+    this->p_data_download_mutex_->unlock();
+    *this->p_weapon_cmd_ = (weapon::cmd)(msg.weapon_cmd);
+}
+
+bool AutonomousControl::weaponCheck() {
+    return this->msg_update_times.checkSingleTimestampTillNow(this->weapon_sub_handle_, -1, 2000);
+}
+
+void AutonomousControl::weaponInit() {
+    this->p_data_download_mutex_->lock();
+    this->p_data_download_->pack_two.weapon_330 = (uint8_t)(three_one_control::weapon_330::off);
+    this->p_data_download_->pack_two.weapon_28 = (uint8_t)(three_one_control::weapon_28::off);
+    this->p_data_download_mutex_->unlock();
+    *this->p_weapon_cmd_ = weapon::cmd::off;
+}
+
+bool AutonomousControl::suspensionCheck(){
+    return this->msg_update_times.checkSingleTimestampTillNow(this->suspension_sub_handle_, -1, 1000);
+}
+
+void AutonomousControl::suspensionInit(){
+    this->p_data_download_mutex_->lock();
+    this->p_data_download_->pack_two.cylinder_select = (uint8_t)three_one_control::cylinder_select::none;
+    this->p_data_download_->pack_two.suspension_select = (uint8_t)three_one_control::suspension_select::none;
+    this->p_data_download_->pack_two.suspension_work_mode = (uint8_t)three_one_control::suspension_work_mode::up_down;
+    this->p_data_download_->pack_two.suspension_work_mode_detail = (uint8_t)three_one_control::suspension_up_down::keep;
+    this->p_data_download_->pack_two.suspension_cylinder_select_mode = (uint8_t)three_one_control::suspension_cylinder_select_mode::all;
+    this->p_data_download_->pack_two.suspension_cylinder_motor_control = (uint8_t)three_one_control::suspension_cylinder_motor_control::off;
+    this->p_data_download_->pack_two.vertical_wall_mode = (uint8_t)three_one_control::vertical_wall_mode::normal_driving;
+    this->p_data_download_->pack_two.fix_two_chamber_valve = (uint8_t)three_one_control::fix_two_chamber_valve::not_fixed;
+    this->p_data_download_->pack_two.entrenchment = (uint8_t)three_one_control::entrenchment::disable;
     this->p_data_download_mutex_->unlock();
 }
 

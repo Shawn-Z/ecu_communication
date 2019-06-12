@@ -22,10 +22,13 @@ public:
     std::mutex *p_data_upload_mutex_;
     sensor_driver_msgs::VehicleState *p_gps_;
 
+    weapon::cmd *p_weapon_cmd_;
+
     void init(DataUpload *p_data_upload,
               std::mutex *p_data_upload_mutex,
               shawn::SLog *p_log,
-              sensor_driver_msgs::VehicleState *p_gps);
+              sensor_driver_msgs::VehicleState *p_gps,
+              weapon::cmd *p_weapon_cmd);
     void dataSend();
     void cmdSend();
 };

@@ -134,6 +134,8 @@ private:
     std::mutex data_upload_mutex_;
     std::mutex data_download_mutex_;
 
+    weapon::cmd weapon_cmd_;
+
     void glogInit();
     void paramsInit();
     void setTimeCheckHandle();

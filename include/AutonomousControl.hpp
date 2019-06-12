@@ -48,6 +48,8 @@ public:
     shawn::handle speed_sub_handle_;
     shawn::handle steer_sub_handle_;
     shawn::handle gps_sub_handle_;
+    shawn::handle suspension_sub_handle_;
+    shawn::handle weapon_sub_handle_;
 
     //// ROS Variables
     ros::NodeHandle nh_;
@@ -55,6 +57,7 @@ public:
     ros::Subscriber steer_sub_;
     ros::Subscriber gps_sub_;
     ros::Subscriber suspension_sub_;
+    ros::Subscriber weapon_sub_;
 
     //// markers
     bool send_switch_;
@@ -66,6 +69,7 @@ public:
     std::mutex *p_data_upload_mutex_;
     std::mutex *p_data_download_mutex_;
     sensor_driver_msgs::VehicleState *p_gps_;
+    weapon::cmd *p_weapon_cmd_;
 
     three_one_feedback::control_mode *p_control_mode_;
     std::mutex *p_control_mode_mutex_;
@@ -75,7 +79,8 @@ public:
               DataDownload *p_data_download, DataUpload *p_data_upload,
               std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex,
               three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex,
-              sensor_driver_msgs::VehicleState *p_gps);
+              sensor_driver_msgs::VehicleState *p_gps,
+              weapon::cmd *p_weapon_cmd);
     void setHandles();
     void receive_init();
     void dataProcess();
@@ -85,8 +90,13 @@ public:
     void steerCb(three_one_msgs::ControlSteer msg);
     void gpsCb(sensor_driver_msgs::VehicleState msg);
     void suspensionCb(three_one_msgs::ControlSuspension msg);
+    void weaponCb(three_one_msgs::ControlWeapon msg);
     bool gpsCheck();
     void gpsInit();
+    bool weaponCheck();
+    void weaponInit();
+    bool suspensionCheck();
+    void suspensionInit();
 
     Transform6t transform6t;
 };

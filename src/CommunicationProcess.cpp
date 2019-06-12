@@ -40,7 +40,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
 
     if (this->yaml_params_.upper_layer_send || this->yaml_params_.upper_layer_receive) {
-        this->autonomousControl_.init(node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_, &this->data_download_mutex_, &this->control_mode_, &this->control_mode_mutex_, &this->gps_);
+        this->autonomousControl_.init(node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_, &this->data_download_mutex_, &this->control_mode_, &this->control_mode_mutex_, &this->gps_, &this->weapon_cmd_);
         if (this->yaml_params_.upper_layer_send) {
             this->ros_publish_timer_ = this->nh_.createTimer(ros::Duration(PUBLISH_PERIOD), boost::bind(&AutonomousControl::dataProcess, &this->autonomousControl_));
         }
@@ -61,7 +61,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
 
     if (this->yaml_params_.weapon_send) {
-        this->weapon_communication_.init(&this->data_upload_, &this->data_upload_mutex_, &this->sLog_, &this->gps_);
+        this->weapon_communication_.init(&this->data_upload_, &this->data_upload_mutex_, &this->sLog_, &this->gps_, &this->weapon_cmd_);
         this->weapon_send_timer_ = this->nh_.createTimer(ros::Duration(0.07), boost::bind(&WeaponCommunication::dataSend, &this->weapon_communication_));
         this->weapon_control_timer_ = this->nh_.createTimer(ros::Duration(0.2), boost::bind(&WeaponCommunication::cmdSend, &this->weapon_communication_));
     }
@@ -362,12 +362,16 @@ void CommunicationProcess::timeCheck() {
     bool msg_update_check = true;
     bool remote_update_check = true;
     bool gps_update_check = true;
+    bool suspension_update_check = true;
+    bool weapon_update_check = true;
     if (this->yaml_params_.lower_layer_receive) {
         udp_recv_check = udpReceiveCheck();
     }
     if (this->yaml_params_.upper_layer_receive) {
         msg_update_check = this->autonomousControl_.rosmsgUpdateCheck();
         gps_update_check = this->autonomousControl_.gpsCheck();
+        suspension_update_check = this->autonomousControl_.suspensionCheck();
+        weapon_update_check = this->autonomousControl_.weaponCheck();
     }
     if (this->yaml_params_.remote_receive) {
         remote_update_check = this->remoteControl_.time_check();
@@ -376,6 +380,14 @@ void CommunicationProcess::timeCheck() {
     if (!gps_update_check) {
         this->autonomousControl_.gpsInit();
         LOG_ERROR << "loss gps msg from zzh";
+    }
+    if (!suspension_update_check) {
+        this->autonomousControl_.suspensionInit();
+        LOG_ERROR << "loss msg from suspension";
+    }
+    if (!weapon_update_check) {
+        this->autonomousControl_.weaponInit();
+        LOG_ERROR << "loss msg from weapon";
     }
 
     this->control_mode_mutex_.lock();

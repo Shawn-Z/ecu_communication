@@ -242,4 +242,11 @@ enum class weapon_28 {
 
 }
 
+namespace weapon {
+    enum class cmd {
+        off = 0,
+        on = 1
+    };
+}
+
 #endif //ECU_COMMUNICATION_THREE_ONE_HPP
