@@ -15,7 +15,7 @@ DataDownload::DataDownload() {
     this->pack_two.valid_data_length = 8;
 }
 
-void DataDownload::init() {
+void DataDownload::init(bool chamber_fix) {
     this->pack_one.thousand_times_curvature = 0;
     this->pack_one.expect_vehicle_speed = 0;
     this->pack_one.expect_left_speed = 0;
@@ -39,7 +39,7 @@ void DataDownload::init() {
     this->pack_two.suspension_work_mode_detail = (int)three_one_control::suspension_up_down::keep;
     this->pack_two.suspension_work_mode = (int)three_one_control::suspension_work_mode::up_down;
     this->pack_two.tailgate_control = (int)three_one_control::tailgate_control::keep;
-    this->pack_two.fix_two_chamber_valve = (int)three_one_control::fix_two_chamber_valve::not_fixed;
+    this->pack_two.fix_two_chamber_valve = chamber_fix? ((int)three_one_control::fix_two_chamber_valve::fixed) : ((int)three_one_control::fix_two_chamber_valve::not_fixed);
     this->pack_two.brake = 0;
     this->pack_two.weapon_330 = (int)three_one_control::weapon_330::off;
     this->pack_two.entrenchment = (int)three_one_control::entrenchment::disable;

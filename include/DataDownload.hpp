@@ -108,7 +108,7 @@ public:
     void dataDistribution();
 
     DataDownload();
-    void init();
+    void init(bool chamber_fix);
     void prepareSend(shawn::handle p_handle);
 
     bool durex(bool move, bool parked_or_halted, double limit_speed, int limit_thousand_curv);

@@ -138,6 +138,8 @@ void CommunicationProcess::paramsInit() {
 
     tmp_result &= this->private_nh_.getParam("files", this->yaml_params_.files);
 
+    tmp_result &= this->private_nh_.getParam("chamber_fix_default", this->yaml_params_.chamber_fix_default);
+
     if (!tmp_result) {
         ROS_ERROR_STREAM("param not retrieved");
         ros::shutdown();
@@ -307,7 +309,7 @@ void CommunicationProcess::udpSend() {
     this->udp_pack_handle_.setID(this->udp_send_proportion_.stepping());
     if (!this->udp_send_switch_) {
         this->data_download_mutex_.lock();
-        this->data_download_.init();
+        this->data_download_.init(this->yaml_params_.chamber_fix_default);
         this->data_download_mutex_.unlock();
     }
     if (this->yaml_params_.reconfig && this->params_.fake_issue) {
