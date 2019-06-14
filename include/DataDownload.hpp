@@ -111,7 +111,7 @@ public:
     void init(bool chamber_fix);
     void prepareSend(shawn::handle p_handle);
 
-    bool durex(bool move, bool parked_or_halted, double limit_speed, int limit_thousand_curv);
+    bool durex(bool move, bool parked, bool need_force_stop, double limit_speed, int limit_thousand_curv);
     void devicesControl(three_one_feedback::control_mode control_mode);
 };
 

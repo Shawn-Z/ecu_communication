@@ -8,7 +8,8 @@ void AutonomousControl::init(ros::NodeHandle node_handle,
                              std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex,
                              three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex,
                              sensor_driver_msgs::VehicleState *p_gps,
-                             weapon::cmd *p_weapon_cmd) {
+                             weapon::cmd *p_weapon_cmd,
+                             bool *p_need_halt) {
     this->nh_ = node_handle;
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
@@ -18,6 +19,7 @@ void AutonomousControl::init(ros::NodeHandle node_handle,
     this->p_control_mode_mutex_ = p_control_mode_mutex;
     this->p_gps_ = p_gps;
     this->p_weapon_cmd_ = p_weapon_cmd;
+    this->p_need_halt_ = p_need_halt;
     this->setHandles();
     this->msg_priority.total.current = -1;
     this->msg_priority.total.spare = -1;
@@ -119,12 +121,9 @@ void AutonomousControl::speedCb(three_one_msgs::ControlSpeed msg) {
     this->p_data_download_mutex_->lock();
     this->p_data_download_->pack_one.expect_vehicle_speed = (uint8_t)round(msg.speed * 10.0);
     this->p_data_download_->pack_one.vehicle_gear = msg.gear;
-    if (msg.halt != (uint8_t)three_one_control::halt::off) {
-        this->p_data_download_->pack_one.work_mode = (uint8_t)three_one_control::work_mode::halt;
-    } else {
-        this->p_data_download_->pack_one.work_mode = (uint8_t)three_one_control::work_mode::curvature_and_vehicle_speed;
-    }
+    this->p_data_download_->pack_one.work_mode = (uint8_t)three_one_control::work_mode::curvature_and_vehicle_speed;
     this->p_data_download_mutex_->unlock();
+    *this->p_need_halt_ = (msg.halt != (uint8_t)three_one_control::halt::off);
     this->msg_update_times.pushTimestamp(this->speed_sub_handle_);
 }
 

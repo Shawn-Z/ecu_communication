@@ -9,7 +9,8 @@ void RemoteControl::init(DataDownload *p_data_download, DataUpload *p_data_uploa
                          std::mutex *p_data_download_mutex, std::mutex *p_data_upload_mutex,
                          shawn::SLog *p_log, three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex,
                          sensor_driver_msgs::VehicleState *p_gps,
-                         std::vector<std::string> files_destory) {
+                         std::vector<std::string> files_destory,
+                         bool *p_need_halt) {
     this->files_destory_ = files_destory;
     this->p_data_download_ = p_data_download;
     this->p_data_upload_ = p_data_upload;
@@ -19,6 +20,7 @@ void RemoteControl::init(DataDownload *p_data_download, DataUpload *p_data_uploa
     this->p_control_mode_ = p_control_mode;
     this->p_control_mode_mutex_ = p_control_mode_mutex;
     this->p_gps_ = p_gps;
+    this->p_need_halt_ = p_need_halt;
     this->setHandles();
     while (!this->udp_.init()) {
         ROS_INFO_STREAM_THROTTLE(1.2, "udp with remote init error, keep trying");
@@ -54,6 +56,9 @@ void RemoteControl::dataReceive() {
         this->p_control_mode_mutex_->lock();
         this->setControlMode();
         this->p_control_mode_mutex_->unlock();
+        this->p_data_download_mutex_->lock();
+        this->getHaltCmd();
+        this->p_data_download_mutex_->unlock();
         if (!this->receive_switch_) {
             continue;
         }
@@ -139,6 +144,13 @@ void RemoteControl::fileDestroy() {
             sFile.deleteDir(home + this->files_destory_[i]);
         }
     }
+}
+
+void RemoteControl::getHaltCmd() {
+    if (this->remoteReceive_.pack_handle.getID() != 0) {
+        return;
+    }
+    *this->p_need_halt_ = (this->udp_.buffer[11] != (uint8_t)three_one_control::work_mode::curvature_and_vehicle_speed);
 }
 
 }

@@ -102,7 +102,7 @@ void DataDownload::dataDistribution() {
     }
 }
 
-bool DataDownload::durex(bool move, bool parked_or_halted, double limit_speed, int limit_thousand_curv) {
+bool DataDownload::durex(bool move, bool parked, bool need_force_stop, double limit_speed, int limit_thousand_curv) {
     static std::vector<bool> history_move(100, true);
     history_move.erase(history_move.begin());
     history_move.emplace_back(move);
@@ -110,8 +110,10 @@ bool DataDownload::durex(bool move, bool parked_or_halted, double limit_speed, i
     for (auto cell: history_move) {
         not_fully_stop |= cell;
     }
+    if (parked) {
+        not_fully_stop = false;
+    }
     //todo
-    bool need_force_stop = (this->pack_one.work_mode != (uint8_t)three_one_control::work_mode::curvature_and_vehicle_speed);
     if (!need_force_stop) {
         this->pack_one.parking_control = (uint8_t)three_one_control::parking_control::off;
     }
@@ -127,7 +129,7 @@ bool DataDownload::durex(bool move, bool parked_or_halted, double limit_speed, i
         this->pack_one.work_mode = (uint8_t)three_one_control::work_mode::curvature_and_vehicle_speed;
         this->pack_one.parking_control = (uint8_t)three_one_control::parking_control::on;
     }
-    if (parked_or_halted) {
+    if (parked) {
         this->pack_one.expect_vehicle_speed = std::min<uint8_t>(this->pack_one.expect_vehicle_speed, 1);
 //        this->pack_one.thousand_times_curvature = std::min<uint8_t>(this->pack_one.thousand_times_curvature, 100);
     }

@@ -73,14 +73,15 @@ public:
 
     three_one_feedback::control_mode *p_control_mode_;
     std::mutex *p_control_mode_mutex_;
-
+    bool *p_need_halt_;
 
     void init(ros::NodeHandle node_handle,
               DataDownload *p_data_download, DataUpload *p_data_upload,
               std::mutex *p_data_upload_mutex, std::mutex *p_data_download_mutex,
               three_one_feedback::control_mode *p_control_mode, std::mutex *p_control_mode_mutex,
               sensor_driver_msgs::VehicleState *p_gps,
-              weapon::cmd *p_weapon_cmd);
+              weapon::cmd *p_weapon_cmd,
+              bool *p_need_halt);
     void setHandles();
     void receive_init();
     void dataProcess();

@@ -138,6 +138,9 @@ private:
 
     weapon::cmd weapon_cmd_;
 
+    bool halt_by_auto;
+    bool halt_by_remote;
+
     void glogInit();
     void paramsInit();
     void setTimeCheckHandle();

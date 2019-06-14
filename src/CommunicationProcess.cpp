@@ -40,7 +40,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
 
     if (this->yaml_params_.upper_layer_send || this->yaml_params_.upper_layer_receive) {
-        this->autonomousControl_.init(node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_, &this->data_download_mutex_, &this->control_mode_, &this->control_mode_mutex_, &this->gps_, &this->weapon_cmd_);
+        this->autonomousControl_.init(node_handle, &this->data_download_, &this->data_upload_, &this->data_upload_mutex_, &this->data_download_mutex_, &this->control_mode_, &this->control_mode_mutex_, &this->gps_, &this->weapon_cmd_, &this->halt_by_auto);
         if (this->yaml_params_.upper_layer_send) {
             this->ros_publish_timer_ = this->nh_.createTimer(ros::Duration(PUBLISH_PERIOD), boost::bind(&AutonomousControl::dataProcess, &this->autonomousControl_));
         }
@@ -50,7 +50,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     }
 
     if (this->yaml_params_.remote_send || this->yaml_params_.remote_receive) {
-        this->remoteControl_.init(&this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_, &this->control_mode_, &this->control_mode_mutex_, &this->gps_, this->yaml_params_.files);
+        this->remoteControl_.init(&this->data_download_, &this->data_upload_, &this->data_download_mutex_, &this->data_upload_mutex_, &this->sLog_, &this->control_mode_, &this->control_mode_mutex_, &this->gps_, this->yaml_params_.files, &this->halt_by_remote);
         if (this->yaml_params_.remote_send) {
             this->remote_send_timer_ = this->nh_.createTimer(ros::Duration(REMOTE_SEND_PERIOD), boost::bind(&RemoteControl::dataSend, &this->remoteControl_));
         }
@@ -317,11 +317,15 @@ void CommunicationProcess::udpSend() {
         fake_issue();
         this->data_download_mutex_.unlock();
     }
-    this->data_download_mutex_.lock();
+
     this->data_upload_mutex_.lock();
-    this->data_download_.durex((this->data_upload_.pack_two.left_motor_actual_speed > 10) || (this->data_upload_.pack_two.right_motor_actual_speed > 10), (this->data_upload_.pack_seven.park_status == (uint8_t)three_one_feedback::park_status::parked),
-            this->yaml_params_.limit_speed, this->yaml_params_.limit_thousand_curv);
+    bool move = (this->data_upload_.pack_two.left_motor_actual_speed > 10) || (this->data_upload_.pack_two.right_motor_actual_speed > 10);
+    bool parked = (this->data_upload_.pack_seven.park_status == (uint8_t)three_one_feedback::park_status::parked);
+    bool need_force_stop = this->halt_by_auto || this->halt_by_remote || (!this->udp_send_switch_);
     this->data_upload_mutex_.unlock();
+
+    this->data_download_mutex_.lock();
+    this->data_download_.durex(move, parked, need_force_stop,this->yaml_params_.limit_speed, this->yaml_params_.limit_thousand_curv);
     this->control_mode_mutex_.lock();
     this->data_download_.devicesControl(this->control_mode_);
     this->control_mode_mutex_.unlock();
