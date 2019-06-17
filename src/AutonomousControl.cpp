@@ -218,6 +218,7 @@ void AutonomousControl::suspensionCb(three_one_msgs::ControlSuspension msg) {
     this->p_data_download_->pack_two.fix_two_chamber_valve = msg.fix_two_chamber_valve;
     this->p_data_download_->pack_two.entrenchment = msg.entrenchment;
     this->p_data_download_mutex_->unlock();
+    this->msg_update_times.pushTimestamp(this->suspension_sub_handle_);
 }
 
 void AutonomousControl::weaponCb(three_one_msgs::ControlWeapon msg) {
@@ -226,6 +227,7 @@ void AutonomousControl::weaponCb(three_one_msgs::ControlWeapon msg) {
     this->p_data_download_->pack_two.weapon_28 = msg.weapon_28;
     this->p_data_download_mutex_->unlock();
     *this->p_weapon_cmd_ = (weapon::cmd)(msg.weapon_cmd);
+    this->msg_update_times.pushTimestamp(this->weapon_sub_handle_);
 }
 
 bool AutonomousControl::weaponCheck() {
