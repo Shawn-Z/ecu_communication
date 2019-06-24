@@ -387,10 +387,6 @@ void CommunicationProcess::timeCheck() {
         this->autonomousControl_.gpsInit();
         LOG_ERROR << "loss gps msg from zzh";
     }
-    if (!suspension_update_check) {
-        this->autonomousControl_.suspensionInit();
-        LOG_ERROR << "loss msg from suspension";
-    }
     if (!weapon_update_check) {
         this->autonomousControl_.weaponInit();
         LOG_ERROR << "loss msg from weapon";
@@ -408,6 +404,10 @@ void CommunicationProcess::timeCheck() {
             this->remoteControl_.send_switch_ = udp_recv_check;
             this->autonomousControl_.receive_switch_ = true;
             this->remoteControl_.receive_switch_ = false;
+            if (!suspension_update_check) {
+                this->autonomousControl_.suspensionInit();
+                LOG_ERROR << "loss msg from suspension";
+            }
             break;
         }
         case (int)three_one_feedback::control_mode::remote: {
