@@ -405,7 +405,7 @@ void CommunicationProcess::timeCheck() {
             this->autonomousControl_.receive_switch_ = true;
             this->remoteControl_.receive_switch_ = false;
             if (!suspension_update_check) {
-                this->autonomousControl_.suspensionInit();
+                this->autonomousControl_.suspensionInit(this->yaml_params_.chamber_fix_default);
                 LOG_ERROR << "loss msg from suspension";
             }
             break;

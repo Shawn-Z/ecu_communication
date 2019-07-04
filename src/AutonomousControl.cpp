@@ -246,7 +246,7 @@ bool AutonomousControl::suspensionCheck(){
     return this->msg_update_times.checkSingleTimestampTillNow(this->suspension_sub_handle_, -1, 1000);
 }
 
-void AutonomousControl::suspensionInit(){
+void AutonomousControl::suspensionInit(bool chamber_fix){
     this->p_data_download_mutex_->lock();
     this->p_data_download_->pack_two.cylinder_select = (uint8_t)three_one_control::cylinder_select::none;
     this->p_data_download_->pack_two.suspension_select = (uint8_t)three_one_control::suspension_select::none;
@@ -255,7 +255,7 @@ void AutonomousControl::suspensionInit(){
     this->p_data_download_->pack_two.suspension_cylinder_select_mode = (uint8_t)three_one_control::suspension_cylinder_select_mode::all;
     this->p_data_download_->pack_two.suspension_cylinder_motor_control = (uint8_t)three_one_control::suspension_cylinder_motor_control::off;
     this->p_data_download_->pack_two.vertical_wall_mode = (uint8_t)three_one_control::vertical_wall_mode::normal_driving;
-    this->p_data_download_->pack_two.fix_two_chamber_valve = (uint8_t)three_one_control::fix_two_chamber_valve::not_fixed;
+    this->p_data_download_->pack_two.fix_two_chamber_valve = chamber_fix? ((uint8_t)three_one_control::fix_two_chamber_valve::fixed): ((uint8_t)three_one_control::fix_two_chamber_valve::not_fixed);
     this->p_data_download_->pack_two.entrenchment = (uint8_t)three_one_control::entrenchment::disable;
     this->p_data_download_mutex_->unlock();
 }

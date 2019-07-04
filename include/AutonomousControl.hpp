@@ -97,7 +97,7 @@ public:
     bool weaponCheck();
     void weaponInit();
     bool suspensionCheck();
-    void suspensionInit();
+    void suspensionInit(bool chamber_fix);
 
     Transform6t transform6t;
 };
