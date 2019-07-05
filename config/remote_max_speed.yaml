@@ -1,0 +1,35 @@
+upper_layer_send: true
+upper_layer_receive: true
+lower_layer_send: true
+lower_layer_receive: true
+remote_receive: true
+remote_send: true
+weapon_send: true
+
+ecu_local_ip: "172.16.16.167"
+ecu_local_port: 8181
+ecu_remote_ip: "172.16.16.168"
+ecu_remote_port: 8181
+
+remote_local_ip: "192.168.3.18"
+remote_local_port: 13100
+remote_remote_ip: "192.168.3.24"
+remote_remote_port: 13010
+
+weapon_local_ip: "192.168.3.18"
+weapon_local_port: 13200
+weapon_remote_ip: "192.168.3.21"
+weapon_remote_port: 13020
+
+reconfig: false
+send_default_when_no_msg: true
+log_rawdata: true
+publish_rawdata: true
+force_autonomous: false
+
+limit_speed: 20.0
+limit_thousand_curv: 1300
+
+files: []
+
+chamber_fix_default: true
