@@ -318,6 +318,13 @@ void CommunicationProcess::udpSend() {
         this->data_download_mutex_.unlock();
     }
 
+    bool cw_rc = false;
+    this->private_nh_.getParam("cw_rc", cw_rc);
+    if (cw_rc) {
+        this->params_.fromParamServer();
+        this->fake_issue();
+    }
+
     this->data_upload_mutex_.lock();
     bool move = (this->data_upload_.pack_two.left_motor_actual_speed > 10) || (this->data_upload_.pack_two.right_motor_actual_speed > 10);
     bool parked = (this->data_upload_.pack_seven.park_status == (uint8_t)three_one_feedback::park_status::parked);
@@ -527,6 +534,7 @@ void CommunicationProcess::fake_issue() {
         this->data_download_.pack_two.suspension_cylinder_motor_control = this->params_.suspension_motor? 1: 0;
         this->data_download_.pack_two.vertical_wall_mode = this->params_.vertical_wall_mode;
         this->data_download_.pack_two.fix_two_chamber_valve = this->params_.fix_two_chamber? 1: 0;
+        this->data_download_.pack_two.entrenchment = this->params_.entrenchment? 1: 0;
     }
     if (this->params_.fake_functions) {
         this->data_download_.pack_one.ring_control = this->params_.ring? 1: 0;

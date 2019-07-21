@@ -27,6 +27,7 @@ gen.add_enum("suspension_cylinder_select", description="guess", entry_strings=["
 gen.add("suspension_motor", paramtype="bool", description="guess", default=False, configurable=True)
 gen.add_enum("vertical_wall_mode", description="guess", entry_strings=["vertical_wall_mode_normal", "vertical_wall_mode_up", "vertical_wall_mode_down"], default="vertical_wall_mode_normal")
 gen.add("fix_two_chamber", paramtype="bool", description="guess", default=False, configurable=True)
+gen.add("entrenchment", paramtype="bool", description="guess", default=False, configurable=True)
 
 gen.add("fake_functions", paramtype="bool", description="guess", default=False, configurable=True)
 gen.add("ring", paramtype="bool", description="guess", default=False, configurable=True)
