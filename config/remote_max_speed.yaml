@@ -32,4 +32,4 @@ limit_thousand_curv: 1300
 
 files: []
 
-chamber_fix_default: true
+chamber_fix_default: false

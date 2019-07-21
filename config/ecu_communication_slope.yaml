@@ -27,9 +27,9 @@ log_rawdata: true
 publish_rawdata: true
 force_autonomous: false
 
-limit_speed: 20.0
-limit_thousand_curv: 1300
+limit_speed: 1.0
+limit_thousand_curv: 1250
 
 files: []
 
-chamber_fix_default: true
+chamber_fix_default: false

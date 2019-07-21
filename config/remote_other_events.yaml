@@ -27,7 +27,7 @@ log_rawdata: true
 publish_rawdata: true
 force_autonomous: false
 
-limit_speed: 20.0
+limit_speed: 17.0
 limit_thousand_curv: 1300
 
 files: []

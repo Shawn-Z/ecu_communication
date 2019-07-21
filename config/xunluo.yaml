@@ -25,11 +25,11 @@ reconfig: false
 send_default_when_no_msg: true
 log_rawdata: true
 publish_rawdata: true
-force_autonomous: false
+force_autonomous: true
 
-limit_speed: 3.0
+limit_speed: 2.5
 limit_thousand_curv: 1300
 
 files: []
 
-chamber_fix_default: true
+chamber_fix_default: false

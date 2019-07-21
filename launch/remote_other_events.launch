@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="ecu_communication" type="ecu_communication" name="ecu_communication" output="screen" respawn="true">
+        <rosparam command="load" file="$(find ecu_communication)/config/remote_other_events.yaml"/>
+    </node>
+</launch>
