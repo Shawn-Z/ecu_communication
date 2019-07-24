@@ -15,7 +15,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
     this->params_.fake_issue = false;
     this->params_.params_lock = true;
-    this->params_.toParamServer();
+//    this->params_.toParamServer();
     if (this->yaml_params_.reconfig) {
         this->reconfigSrv_.setCallback(boost::bind(&CommunicationProcess::reconfigureRequest, this, _1, _2));
     }
@@ -69,7 +69,39 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
 
+    ros::param::set("/ecu_communication/fake_drive", false);
+    ros::param::set("/ecu_communication/fake_suspension", false);
 
+    ros::param::set("/ecu_communication/work_mode", 1);
+    ros::param::set("/ecu_communication/driving_gear", 0);
+    ros::param::set("/ecu_communication/vehicle_speed", 0.0);
+    ros::param::set("/ecu_communication/turn_to_left", true);
+    ros::param::set("/ecu_communication/vehicle_curvature", 0.0);
+
+    ros::param::set("/ecu_communication/cylinder_select", 0);
+    ros::param::set("/ecu_communication/suspension_select", 0);
+    ros::param::set("/ecu_communication/suspension_mode", 0);
+    ros::param::set("/ecu_communication/suspension_mode_detail", 3);
+    ros::param::set("/ecu_communication/suspension_cylinder_select", 0);
+    ros::param::set("/ecu_communication/suspension_motor", false);
+    ros::param::set("/ecu_communication/vertical_wall_mode", 0);
+    ros::param::set("/ecu_communication/fix_two_chamber", true);
+    ros::param::set("/ecu_communication/entrenchment", false);
+
+    ros::param::set("/ecu_communication/params_lock", false);
+    ros::param::set("/ecu_communication/fake_issue", false);
+    ros::param::set("/ecu_communication/left_wheel_forward", false);
+    ros::param::set("/ecu_communication/right_wheel_forward", false);
+    ros::param::set("/ecu_communication/left_wheel_speed", false);
+    ros::param::set("/ecu_communication/right_wheel_speed", false);
+    ros::param::set("/ecu_communication/vehicle_brake", false);
+    ros::param::set("/ecu_communication/park", false);
+    ros::param::set("/ecu_communication/fake_functions", false);
+    ros::param::set("/ecu_communication/ring", false);
+    ros::param::set("/ecu_communication/forward_light", false);
+    ros::param::set("/ecu_communication/wide_taillight", false);
+    ros::param::set("/ecu_communication/turn_light", false);
+    ros::param::set("/ecu_communication/tailgate", false);
 
 //    this->serialPortCommunication.init();
 //    this->fuck_timer = this->nh_.createTimer(ros::Duration(0.001), boost::bind(&CommunicationProcess::fuck_send, this));
@@ -312,17 +344,20 @@ void CommunicationProcess::udpSend() {
         this->data_download_.init(this->yaml_params_.chamber_fix_default);
         this->data_download_mutex_.unlock();
     }
-    if (this->yaml_params_.reconfig && this->params_.fake_issue) {
+
+    bool cw_rc = false;
+    if (!this->private_nh_.getParam("cw_rc", cw_rc)) {
+        cw_rc = false;
+    }
+
+    if (this->yaml_params_.reconfig && this->params_.fake_issue &&(!cw_rc)) {
         this->data_download_mutex_.lock();
         fake_issue();
         this->data_download_mutex_.unlock();
     }
 
-    bool cw_rc = false;
-    this->private_nh_.getParam("cw_rc", cw_rc);
     if (cw_rc) {
-        this->params_.fromParamServer();
-        this->fake_issue();
+        this->remote_fake_issue();
     }
 
     this->data_upload_mutex_.lock();
@@ -524,6 +559,7 @@ void CommunicationProcess::fake_issue() {
         this->data_download_.pack_one.expect_right_speed = (int)(this->params_.right_wheel_speed * 10);
         this->data_download_.pack_two.brake = this->params_.vehicle_brake;
         this->data_download_.pack_one.parking_control = this->params_.park? 1: 0;
+        ROS_WARN_STREAM("rqt fake drive");
     }
     if (this->params_.fake_suspension) {
         this->data_download_.pack_two.cylinder_select = this->params_.cylinder_select;
@@ -535,6 +571,7 @@ void CommunicationProcess::fake_issue() {
         this->data_download_.pack_two.vertical_wall_mode = this->params_.vertical_wall_mode;
         this->data_download_.pack_two.fix_two_chamber_valve = this->params_.fix_two_chamber? 1: 0;
         this->data_download_.pack_two.entrenchment = this->params_.entrenchment? 1: 0;
+        ROS_WARN_STREAM("rqt fake suspension");
     }
     if (this->params_.fake_functions) {
         this->data_download_.pack_one.ring_control = this->params_.ring? 1: 0;
@@ -542,6 +579,7 @@ void CommunicationProcess::fake_issue() {
         this->data_download_.pack_one.wide_taillight = this->params_.wide_taillight? 1: 0;
         this->data_download_.pack_one.turn_light = this->params_.turn_light;
         this->data_download_.pack_two.tailgate_control = this->params_.tailgate;
+        ROS_WARN_STREAM("rqt fake function");
     }
 }
 
@@ -566,6 +604,72 @@ void CommunicationProcess::fuck_send() {
     data_send += tmp3;
 
     this->serialPortCommunication.send(data_send.c_str(), 13);
+}
+
+void CommunicationProcess::remote_fake_issue() {
+    bool fake_drive = false;
+    bool fake_suspension = false;
+    if (!this->private_nh_.getParam("fake_drive1", fake_drive)) {
+        fake_drive = false;
+    }
+    if (!this->private_nh_.getParam("fake_suspension1", fake_suspension)) {
+        fake_suspension = false;
+    }
+
+    if (fake_drive) {
+        int work_mode = 1;
+        int driving_gear = 0;
+        double vehicle_speed = 0.0;
+        double vehicle_curvature = 0.0;
+        bool turn_to_left = true;
+        this->private_nh_.getParam("work_mode1", work_mode);
+        this->private_nh_.getParam("driving_gear1", driving_gear);
+        this->private_nh_.getParam("vehicle_speed1", vehicle_speed);
+        this->private_nh_.getParam("turn_to_left1", turn_to_left);
+        this->private_nh_.getParam("vehicle_curvature1", vehicle_curvature);
+        this->data_download_.pack_one.work_mode = work_mode;
+        this->data_download_.pack_one.vehicle_gear = driving_gear;
+        this->data_download_.pack_one.expect_vehicle_speed = (int)(vehicle_speed * 10);
+        this->data_download_.pack_one.vehicle_turn_to = turn_to_left? 0: 1;
+        this->data_download_.pack_one.thousand_times_curvature = (int)(vehicle_curvature * 1000);
+        this->data_download_.pack_one.left_wheel_rotate = 1;
+        this->data_download_.pack_one.right_wheel_rotate = 1;
+        this->data_download_.pack_one.expect_left_speed = 0;
+        this->data_download_.pack_one.expect_right_speed = 0;
+        this->data_download_.pack_two.brake = 0;
+        this->data_download_.pack_one.parking_control = 0;
+        ROS_WARN_STREAM("remote fake drive: work_mode: " << work_mode << " gear: " << driving_gear << " speed: " << vehicle_speed << " curv: " << vehicle_curvature << " left: " << turn_to_left);
+    }
+    if (fake_suspension) {
+        int cylinder_select = 0;
+        int suspension_select = 0;
+        int suspension_mode = 0;
+        int suspension_mode_detail = 0;
+        int suspension_cylinder_select = 0;
+        int vertical_wall_mode = 0;
+        bool suspension_motor = false;
+        bool fix_two_chamber = true;
+        bool entrenchment = false;
+        this->private_nh_.getParam("cylinder_select1", cylinder_select);
+        this->private_nh_.getParam("suspension_select1", suspension_select);
+        this->private_nh_.getParam("suspension_mode1", suspension_mode);
+        this->private_nh_.getParam("suspension_mode_detail1", suspension_mode_detail);
+        this->private_nh_.getParam("suspension_cylinder_select1", suspension_cylinder_select);
+        this->private_nh_.getParam("suspension_motor1", suspension_motor);
+        this->private_nh_.getParam("vertical_wall_mode1", vertical_wall_mode);
+        this->private_nh_.getParam("fix_two_chamber1", fix_two_chamber);
+        this->private_nh_.getParam("entrenchment1", entrenchment);
+        this->data_download_.pack_two.cylinder_select = cylinder_select;
+        this->data_download_.pack_two.suspension_select = suspension_select;
+        this->data_download_.pack_two.suspension_work_mode = suspension_mode;
+        this->data_download_.pack_two.suspension_work_mode_detail = suspension_mode_detail;
+        this->data_download_.pack_two.suspension_cylinder_select_mode = suspension_cylinder_select;
+        this->data_download_.pack_two.suspension_cylinder_motor_control = suspension_motor? 1: 0;
+        this->data_download_.pack_two.vertical_wall_mode = vertical_wall_mode;
+        this->data_download_.pack_two.fix_two_chamber_valve = fix_two_chamber? 1: 0;
+        this->data_download_.pack_two.entrenchment = entrenchment? 1: 0;
+        ROS_WARN_STREAM("remote fake suspension: cylinder_select: " << cylinder_select << "suspension_select" << suspension_select << "suspension_mode" << suspension_mode << "suspension_mode_detail" << suspension_mode_detail << "suspension_cylinder_select" << suspension_cylinder_select << "vertical_wall_mode" << vertical_wall_mode << "suspension_motor" << suspension_motor << "fix_two_chamber" << fix_two_chamber << "entrenchment" << entrenchment);
+    }
 }
 
 }

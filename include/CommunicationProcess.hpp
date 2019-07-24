@@ -151,6 +151,8 @@ private:
     bool udpReceiveCheck();
     void fake_issue();
 
+    void remote_fake_issue();
+
     ros::Timer fuck_timer;
     void fuck_send();
     SerialPortCommunication serialPortCommunication;
