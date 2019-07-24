@@ -15,7 +15,7 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
 
     this->params_.fake_issue = false;
     this->params_.params_lock = true;
-//    this->params_.toParamServer();
+    this->params_.toParamServer();
     if (this->yaml_params_.reconfig) {
         this->reconfigSrv_.setCallback(boost::bind(&CommunicationProcess::reconfigureRequest, this, _1, _2));
     }
@@ -69,39 +69,6 @@ CommunicationProcess::CommunicationProcess(ros::NodeHandle node_handle, ros::Nod
     this->time_check_timer_ = this->nh_.createTimer(ros::Duration(CHECK_PERIOD),
                                                     boost::bind(&CommunicationProcess::timeCheck, this));
 
-    ros::param::set("/ecu_communication/fake_drive", false);
-    ros::param::set("/ecu_communication/fake_suspension", false);
-
-    ros::param::set("/ecu_communication/work_mode", 1);
-    ros::param::set("/ecu_communication/driving_gear", 0);
-    ros::param::set("/ecu_communication/vehicle_speed", 0.0);
-    ros::param::set("/ecu_communication/turn_to_left", true);
-    ros::param::set("/ecu_communication/vehicle_curvature", 0.0);
-
-    ros::param::set("/ecu_communication/cylinder_select", 0);
-    ros::param::set("/ecu_communication/suspension_select", 0);
-    ros::param::set("/ecu_communication/suspension_mode", 0);
-    ros::param::set("/ecu_communication/suspension_mode_detail", 3);
-    ros::param::set("/ecu_communication/suspension_cylinder_select", 0);
-    ros::param::set("/ecu_communication/suspension_motor", false);
-    ros::param::set("/ecu_communication/vertical_wall_mode", 0);
-    ros::param::set("/ecu_communication/fix_two_chamber", true);
-    ros::param::set("/ecu_communication/entrenchment", false);
-
-    ros::param::set("/ecu_communication/params_lock", false);
-    ros::param::set("/ecu_communication/fake_issue", false);
-    ros::param::set("/ecu_communication/left_wheel_forward", false);
-    ros::param::set("/ecu_communication/right_wheel_forward", false);
-    ros::param::set("/ecu_communication/left_wheel_speed", false);
-    ros::param::set("/ecu_communication/right_wheel_speed", false);
-    ros::param::set("/ecu_communication/vehicle_brake", false);
-    ros::param::set("/ecu_communication/park", false);
-    ros::param::set("/ecu_communication/fake_functions", false);
-    ros::param::set("/ecu_communication/ring", false);
-    ros::param::set("/ecu_communication/forward_light", false);
-    ros::param::set("/ecu_communication/wide_taillight", false);
-    ros::param::set("/ecu_communication/turn_light", false);
-    ros::param::set("/ecu_communication/tailgate", false);
 
 //    this->serialPortCommunication.init();
 //    this->fuck_timer = this->nh_.createTimer(ros::Duration(0.001), boost::bind(&CommunicationProcess::fuck_send, this));
