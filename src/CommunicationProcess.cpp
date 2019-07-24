@@ -394,11 +394,11 @@ void CommunicationProcess::timeCheck() {
 
     if (!gps_update_check) {
         this->autonomousControl_.gpsInit();
-        LOG_ERROR << "loss gps msg from zzh";
+        ROS_WARN_STREAM_THROTTLE(1, "loss gps msg from zzh");
     }
     if (!weapon_update_check) {
         this->autonomousControl_.weaponInit();
-        LOG_ERROR << "loss msg from weapon";
+        ROS_WARN_STREAM_THROTTLE(1, "loss msg from weapon");
     }
 
     this->control_mode_mutex_.lock();
@@ -415,7 +415,7 @@ void CommunicationProcess::timeCheck() {
             this->remoteControl_.receive_switch_ = false;
             if (!suspension_update_check) {
                 this->autonomousControl_.suspensionInit(this->yaml_params_.chamber_fix_default);
-                LOG_ERROR << "loss msg from suspension";
+                ROS_WARN_STREAM_THROTTLE(1, "loss msg from suspension");
             }
             break;
         }
@@ -526,7 +526,7 @@ void CommunicationProcess::fake_issue() {
         this->data_download_.pack_one.expect_right_speed = (int)(this->params_.right_wheel_speed * 10);
         this->data_download_.pack_two.brake = this->params_.vehicle_brake;
         this->data_download_.pack_one.parking_control = this->params_.park? 1: 0;
-        ROS_WARN_STREAM("rqt fake drive");
+        ROS_WARN_STREAM_THROTTLE(1, "rqt fake drive");
     }
     if (this->params_.fake_suspension) {
         this->data_download_.pack_two.cylinder_select = this->params_.cylinder_select;
@@ -538,7 +538,7 @@ void CommunicationProcess::fake_issue() {
         this->data_download_.pack_two.vertical_wall_mode = this->params_.vertical_wall_mode;
         this->data_download_.pack_two.fix_two_chamber_valve = this->params_.fix_two_chamber? 1: 0;
         this->data_download_.pack_two.entrenchment = this->params_.entrenchment? 1: 0;
-        ROS_WARN_STREAM("rqt fake suspension");
+        ROS_WARN_STREAM_THROTTLE(1, "rqt fake suspension");
     }
     if (this->params_.fake_functions) {
         this->data_download_.pack_one.ring_control = this->params_.ring? 1: 0;
@@ -546,7 +546,7 @@ void CommunicationProcess::fake_issue() {
         this->data_download_.pack_one.wide_taillight = this->params_.wide_taillight? 1: 0;
         this->data_download_.pack_one.turn_light = this->params_.turn_light;
         this->data_download_.pack_two.tailgate_control = this->params_.tailgate;
-        ROS_WARN_STREAM("rqt fake function");
+        ROS_WARN_STREAM_THROTTLE(1, "rqt fake function");
     }
 }
 
@@ -605,7 +605,7 @@ void CommunicationProcess::remote_fake_issue() {
         this->data_download_.pack_one.expect_right_speed = 0;
         this->data_download_.pack_two.brake = 0;
         this->data_download_.pack_one.parking_control = 0;
-        ROS_WARN_STREAM("remote fake drive: work_mode: " << work_mode << " gear: " << driving_gear << " speed: " << vehicle_speed << " curv: " << vehicle_curvature << " left: " << turn_to_left);
+        ROS_WARN_STREAM_THROTTLE(1, "remote fake drive: work_mode: " << work_mode << " gear: " << driving_gear << " speed: " << vehicle_speed << " curv: " << vehicle_curvature << " left: " << turn_to_left);
     }
     if (fake_suspension) {
         int cylinder_select = 0;
@@ -635,7 +635,7 @@ void CommunicationProcess::remote_fake_issue() {
         this->data_download_.pack_two.vertical_wall_mode = vertical_wall_mode;
         this->data_download_.pack_two.fix_two_chamber_valve = fix_two_chamber? 1: 0;
         this->data_download_.pack_two.entrenchment = entrenchment? 1: 0;
-        ROS_WARN_STREAM("remote fake suspension: cylinder_select: " << cylinder_select << "suspension_select" << suspension_select << "suspension_mode" << suspension_mode << "suspension_mode_detail" << suspension_mode_detail << "suspension_cylinder_select" << suspension_cylinder_select << "vertical_wall_mode" << vertical_wall_mode << "suspension_motor" << suspension_motor << "fix_two_chamber" << fix_two_chamber << "entrenchment" << entrenchment);
+        ROS_WARN_STREAM_THROTTLE(1, "remote fake suspension: cylinder_select: " << cylinder_select << "suspension_select" << suspension_select << "suspension_mode" << suspension_mode << "suspension_mode_detail" << suspension_mode_detail << "suspension_cylinder_select" << suspension_cylinder_select << "vertical_wall_mode" << vertical_wall_mode << "suspension_motor" << suspension_motor << "fix_two_chamber" << fix_two_chamber << "entrenchment" << entrenchment);
     }
 }
 
